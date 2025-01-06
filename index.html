@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+    <title>Babylon.js using Havok</title>
+
+    <!-- Babylon.js 
+    <script src="https://cdn.babylonjs.com/havok/HavokPhysics_umd.js"></script>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+    -->
+
+    <script src="/node_modules/@babylonjs/havok/lib/umd/HavokPhysics_umd.js"></script>
+    <script src="/node_modules/babylonjs/babylon.js"></script>
+
+    <style>
+      html,
+      body {
+        overflow: hidden;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+
+      #renderCanvas {
+        width: 100%;
+        height: 100%;
+        touch-action: none;
+      }
+
+      #canvasZone {
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="canvasZone"><canvas id="renderCanvas"></canvas></div>
+    <script>
+      const canvas = document.getElementById("renderCanvas");
+      const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true, disableWebGL2Support: false });
+      const createScene = async function () {
+        // This creates a basic Babylon Scene object (non-mesh)
+        const scene = new BABYLON.Scene(engine);
+
+        // This creates and positions a free camera (non-mesh)
+        //const camera = new BABYLON.FreeCamera("camera1", new BABYLON.Vector3(0, 15, -15), scene);
+        const camera = new BABYLON.UniversalCamera("UniversalCamera", new BABYLON.Vector3(0, 50, -50), scene);
+
+        // This attaches the camera to the canvas
+        camera.attachControl(canvas, true);
+
+        // This creates a light, aiming 0,1,0 - to the sky (non-mesh)
+        const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+
+        // Default intensity is 1. Let's dim the light a small amount
+        light.intensity = 0.7;
+
+        // Our built-in 'sphere' shape.
+        const sphere = BABYLON.MeshBuilder.CreateSphere("sphere", { diameter: 2, segments: 32 }, scene);
+
+        // Move the sphere upward at 4 units
+        sphere.position.y = 4;
+
+        // Our built-in 'ground' shape.
+        const ground = BABYLON.MeshBuilder.CreateGround("ground", { width: 30, height: 30 }, scene);
+        ground.position.z = 10
+        //ground.position.z = 20;
+
+        // Ground with hole using ground subtracted by tube to create a new mesh        
+        const tube = BABYLON.MeshBuilder.CreateTube("tube", {
+        //const tube = BABYLON.Mesh.CreateCylinder("tube", {
+            path: [
+                new BABYLON.Vector3(0, 1, 0),
+                new BABYLON.Vector3(0, -2, 0)
+            ],
+            radius: 2.2,
+            sideOrientation: BABYLON.Mesh.DOUBLESIDE,
+            cap: 2 //CAP_END
+        }, scene);
+        tube.position.z = 20;
+        var groundCSG = BABYLON.CSG.FromMesh(ground);
+        var tubeCSG = BABYLON.CSG.FromMesh(tube);
+        var hole = groundCSG.subtract(tubeCSG).toMesh("hole", null, scene);
+        hole.position = new BABYLON.Vector3(0, 0, 40);
+        
+        // Bumper using a box shape
+        const bumper = BABYLON.MeshBuilder.CreateBox("box", {height: 2, width:30}, scene);
+        bumper.position.z = -5;
+        bumper.position.y = 1;
+
+        // This targets the camera to scene origin
+        //camera.setTarget(BABYLON.Vector3.Zero());
+        camera.setTarget(sphere.position);
+
+
+        // initialize plugin
+        const havokInstance = await HavokPhysics();
+        // pass the engine to the plugin
+        const hk = new BABYLON.HavokPlugin(true, havokInstance);
+        // enable physics in the scene with a gravity
+        scene.enablePhysics(new BABYLON.Vector3(0, -9.8, 0), hk);
+
+        // Create a sphere shape and the associated body. Size will be determined automatically.
+        const sphereAggregate = new BABYLON.PhysicsAggregate(sphere, BABYLON.PhysicsShapeType.SPHERE, { mass: 1, restitution: 0.5 }, scene);
+
+        // Create a static box shape.
+        const groundAggregate = new BABYLON.PhysicsAggregate(ground, BABYLON.PhysicsShapeType.BOX, { mass: 0, restitution: 0  }, scene);
+        const bumperAggregate = new BABYLON.PhysicsAggregate(bumper, BABYLON.PhysicsShapeType.BOX, { mass: 0, restitution: 0  }, scene);
+        // https://www.babylonjs-playground.com/#T6NP3F#0
+        // Create a static mesh shape.
+        const holeAggregate = new BABYLON.PhysicsAggregate(hole, BABYLON.PhysicsShapeType.MESH, { mass: 0, restitution: 0  }, scene);
+
+        /*
+        const tubeAggregate = new BABYLON.PhysicsAggregate(tube, BABYLON.PhysicsShapeType.CONVEX_HULL, {
+            mass: 0,
+            restitution: .5,
+            friction: .5
+        }, scene);
+        */
+
+        let game= {
+          impulseTime: 0
+        };
+        // Pointer input
+        scene.onPointerObservable.add((pointerInfo) => {
+          switch (pointerInfo.type) {
+            case BABYLON.PointerEventTypes.POINTERDOWN:
+              game.impulseTime = new Date();
+              console.log("POINTER DOWN @ " + pointerInfo.event.clientX + ',' +pointerInfo.event.clientY);
+              break;
+            case BABYLON.PointerEventTypes.POINTERUP:
+              let impulseAmount = (new Date() - game.impulseTime) / 20;
+              let impulse = new BABYLON.Vector3(0, 0, impulseAmount)
+              console.log('impulseAmount=' + impulseAmount);
+              console.log("POINTER UP @ " + pointerInfo.event.clientX + ',' +pointerInfo.event.clientY);
+              //sphereAggregate.body.applyImpulse(sphereAggregate.body, {x:0, y:impulseAmount, z:0}, sphere.position);
+              sphereAggregate.body.applyImpulse(impulse, sphere.getAbsolutePosition());
+              break;
+          }
+        });
+
+
+        return scene;
+      };
+
+      createScene().then((scene) => {
+        engine.runRenderLoop(function () {
+          if (scene) {
+            scene.render();
+          }
+        });
+      });
+      // Resize
+      window.addEventListener("resize", function () {
+        engine.resize();
+      });
+    </script>
+  </body>
+</html>
