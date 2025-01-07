@@ -59,7 +59,7 @@
         light.intensity = 0.7;
 
         // Our built-in 'sphere' shape.
-        const sphere = BABYLON.MeshBuilder.CreateSphere("sphere", { diameter: 2, segments: 32 }, scene);
+        const sphere = BABYLON.MeshBuilder.CreateSphere("sphere", { diameter: 2, segments: 16 }, scene);
 
         // Move the sphere upward at 4 units
         sphere.position.y = 4;
@@ -67,7 +67,6 @@
         // Our built-in 'ground' shape.
         const ground = BABYLON.MeshBuilder.CreateGround("ground", { width: 30, height: 30 }, scene);
         ground.position.z = 10
-        //ground.position.z = 20;
 
         // Ground with hole using ground subtracted by tube to create a new mesh        
         const tube = BABYLON.MeshBuilder.CreateTube("tube", {
@@ -80,16 +79,22 @@
             sideOrientation: BABYLON.Mesh.DOUBLESIDE,
             cap: 2 //CAP_END
         }, scene);
-        tube.position.z = 20;
+        tube.position.z = 15;
         var groundCSG = BABYLON.CSG.FromMesh(ground);
         var tubeCSG = BABYLON.CSG.FromMesh(tube);
         var hole = groundCSG.subtract(tubeCSG).toMesh("hole", null, scene);
         hole.position = new BABYLON.Vector3(0, 0, 40);
+        tube.dispose();
         
+        //var hole = ground.clone("hole");
+        //hole.position = new BABYLON.Vector3(0, 0, 40);
         // Bumper using a box shape
-        const bumper = BABYLON.MeshBuilder.CreateBox("box", {height: 2, width:30}, scene);
-        bumper.position.z = -5;
-        bumper.position.y = 1;
+        const bumper1 = BABYLON.MeshBuilder.CreateBox("bumper1", {height: 4, width:30}, scene);
+        bumper1.position.z = -5;
+        bumper1.position.y = 1;
+
+        const bumper2 = bumper1.clone("bumper2");
+        bumper2.position.z = 54;
 
         // This targets the camera to scene origin
         //camera.setTarget(BABYLON.Vector3.Zero());
@@ -104,11 +109,12 @@
         scene.enablePhysics(new BABYLON.Vector3(0, -9.8, 0), hk);
 
         // Create a sphere shape and the associated body. Size will be determined automatically.
-        const sphereAggregate = new BABYLON.PhysicsAggregate(sphere, BABYLON.PhysicsShapeType.SPHERE, { mass: 1, restitution: 0.5 }, scene);
+        const sphereAggregate = new BABYLON.PhysicsAggregate(sphere, BABYLON.PhysicsShapeType.SPHERE, { mass: 2, restitution: .33 }, scene);
 
         // Create a static box shape.
         const groundAggregate = new BABYLON.PhysicsAggregate(ground, BABYLON.PhysicsShapeType.BOX, { mass: 0, restitution: 0  }, scene);
-        const bumperAggregate = new BABYLON.PhysicsAggregate(bumper, BABYLON.PhysicsShapeType.BOX, { mass: 0, restitution: 0  }, scene);
+        const bumper1Aggregate = new BABYLON.PhysicsAggregate(bumper1, BABYLON.PhysicsShapeType.BOX, { mass: 0, restitution: 0  }, scene);
+        const bumper2Aggregate = new BABYLON.PhysicsAggregate(bumper2, BABYLON.PhysicsShapeType.BOX, { mass: 0, restitution: 0  }, scene);
         // https://www.babylonjs-playground.com/#T6NP3F#0
         // Create a static mesh shape.
         const holeAggregate = new BABYLON.PhysicsAggregate(hole, BABYLON.PhysicsShapeType.MESH, { mass: 0, restitution: 0  }, scene);
