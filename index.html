@@ -39,6 +39,10 @@
   <body>
     <div id="canvasZone"><canvas id="renderCanvas"></canvas></div>
     <script>
+      const game= {
+          impulseTime: 0,
+          shots: 0
+      };
       const canvas = document.getElementById("renderCanvas");
       const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true, disableWebGL2Support: false });
       const createScene = async function () {
@@ -51,12 +55,15 @@
 
         // This attaches the camera to the canvas
         camera.attachControl(canvas, true);
-
         // This creates a light, aiming 0,1,0 - to the sky (non-mesh)
         const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
 
         // Default intensity is 1. Let's dim the light a small amount
         light.intensity = 0.7;
+
+        const green = new BABYLON.StandardMaterial("groundMat");
+        // Color green
+        green.diffuseColor = new BABYLON.Color3(0, .8, 0);
 
         // Our built-in 'sphere' shape.
         const sphere = BABYLON.MeshBuilder.CreateSphere("sphere", { diameter: 2, segments: 16 }, scene);
@@ -67,25 +74,42 @@
         // Our built-in 'ground' shape.
         const ground = BABYLON.MeshBuilder.CreateGround("ground", { width: 30, height: 30 }, scene);
         ground.position.z = 10
+        ground.material = green; //Place the material property of the ground
 
-        // Ground with hole using ground subtracted by tube to create a new mesh        
-        const tube = BABYLON.MeshBuilder.CreateTube("tube", {
-        //const tube = BABYLON.Mesh.CreateCylinder("tube", {
-            path: [
-                new BABYLON.Vector3(0, 1, 0),
-                new BABYLON.Vector3(0, -2, 0)
-            ],
-            radius: 2.2,
-            sideOrientation: BABYLON.Mesh.DOUBLESIDE,
-            cap: 2 //CAP_END
+        // Ground with hole using ground subtracted by tube to create a new mesh  
+        const tube = BABYLON.MeshBuilder.CreateCylinder("tube", {
+          height:4, 
+          diameterTop:4, 
+          diameterBottom:4, 
+          tessellation:16, 
+          subdivisions:1
         }, scene);
-        tube.position.z = 15;
+        tube.position.z = ground.position.z ;
+
+        // use Constructive Solid Geometry to subtract tube from ground
+        // @TODO - Please use CSG2 instead
         var groundCSG = BABYLON.CSG.FromMesh(ground);
         var tubeCSG = BABYLON.CSG.FromMesh(tube);
         var hole = groundCSG.subtract(tubeCSG).toMesh("hole", null, scene);
         hole.position = new BABYLON.Vector3(0, 0, 40);
-        tube.dispose();
+        hole.material = green;
         
+        // Remove the tube now that the hole is made
+        tube.dispose();
+
+        // Add a trigger at the bottom of the hole to detect intersection with sphere
+        const trigger = BABYLON.MeshBuilder.CreateBox("trigger", {height: 1, width:4, depth:4}, scene);
+        trigger.position = new BABYLON.Vector3(hole.position.x, -2, hole.position.z);
+        trigger.actionManager = new BABYLON.ActionManager(scene);
+        trigger.actionManager.registerAction(new BABYLON.ExecuteCodeAction({
+              trigger: BABYLON.ActionManager.OnIntersectionEnterTrigger,
+              parameter: scene.getMeshByName("sphere"),
+          },
+          () => {
+              alert('Hole in ' + game.shots)
+          },
+        ));
+
         //var hole = ground.clone("hole");
         //hole.position = new BABYLON.Vector3(0, 0, 40);
         // Bumper using a box shape
@@ -127,9 +151,7 @@
         }, scene);
         */
 
-        let game= {
-          impulseTime: 0
-        };
+
         // Pointer input
         scene.onPointerObservable.add((pointerInfo) => {
           switch (pointerInfo.type) {
@@ -144,6 +166,7 @@
               console.log("POINTER UP @ " + pointerInfo.event.clientX + ',' +pointerInfo.event.clientY);
               //sphereAggregate.body.applyImpulse(sphereAggregate.body, {x:0, y:impulseAmount, z:0}, sphere.position);
               sphereAggregate.body.applyImpulse(impulse, sphere.getAbsolutePosition());
+              game.shots++;
               break;
           }
         });
