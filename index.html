@@ -44,17 +44,18 @@
           shots: 0
       };
       const canvas = document.getElementById("renderCanvas");
+      
       const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true, disableWebGL2Support: false });
       const createScene = async function () {
+        // await BABYLON.InitializeCSG2Async(); // needed for CSG2
+
         // This creates a basic Babylon Scene object (non-mesh)
         const scene = new BABYLON.Scene(engine);
 
-        // This creates and positions a free camera (non-mesh)
-        //const camera = new BABYLON.FreeCamera("camera1", new BABYLON.Vector3(0, 15, -15), scene);
-        const camera = new BABYLON.UniversalCamera("UniversalCamera", new BABYLON.Vector3(0, 50, -50), scene);
+
 
         // This attaches the camera to the canvas
-        camera.attachControl(canvas, true);
+        //camera.attachControl(canvas, true);
         // This creates a light, aiming 0,1,0 - to the sky (non-mesh)
         const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
 
@@ -67,9 +68,15 @@
 
         // Our built-in 'sphere' shape.
         const sphere = BABYLON.MeshBuilder.CreateSphere("sphere", { diameter: 2, segments: 16 }, scene);
+        sphere.position.y = 1;
 
-        // Move the sphere upward at 4 units
-        sphere.position.y = 4;
+        // Create a camera locked to sphere
+        const camera = new BABYLON.ArcRotateCamera("camera1", Math.PI/4, Math.PI/4, 10, new BABYLON.Vector3(0,0,0));   
+        //camera.cameraRotation = 0;
+        //camera.noRotationConstraint = true;
+        //camera.heightOffset = 100;
+        camera.setPosition(new BABYLON.Vector3(0, 120, -80));
+        camera.lockedTarget = sphere; //version 2.5 onwards
 
         // Our built-in 'ground' shape.
         const ground = BABYLON.MeshBuilder.CreateGround("ground", { width: 30, height: 30 }, scene);
@@ -87,7 +94,7 @@
         tube.position.z = ground.position.z ;
 
         // use Constructive Solid Geometry to subtract tube from ground
-        // @TODO - Please use CSG2 instead
+        // @TODO - use CSG2 instead (CSG2 not working-  Error while creating the CSG: Not manifold)
         var groundCSG = BABYLON.CSG.FromMesh(ground);
         var tubeCSG = BABYLON.CSG.FromMesh(tube);
         var hole = groundCSG.subtract(tubeCSG).toMesh("hole", null, scene);
@@ -98,7 +105,7 @@
         tube.dispose();
 
         // Add a trigger at the bottom of the hole to detect intersection with sphere
-        const trigger = BABYLON.MeshBuilder.CreateBox("trigger", {height: 1, width:4, depth:4}, scene);
+        const trigger = BABYLON.MeshBuilder.CreateBox("trigger", {height: 1, width:5, depth:5}, scene);
         trigger.position = new BABYLON.Vector3(hole.position.x, -2, hole.position.z);
         trigger.actionManager = new BABYLON.ActionManager(scene);
         trigger.actionManager.registerAction(new BABYLON.ExecuteCodeAction({
@@ -110,15 +117,14 @@
           },
         ));
 
-        //var hole = ground.clone("hole");
-        //hole.position = new BABYLON.Vector3(0, 0, 40);
+
         // Bumper using a box shape
         const bumper1 = BABYLON.MeshBuilder.CreateBox("bumper1", {height: 4, width:30}, scene);
         bumper1.position.z = -5;
         bumper1.position.y = 1;
 
         const bumper2 = bumper1.clone("bumper2");
-        bumper2.position.z = 54;
+        bumper2.position.z = 55;
 
         // This targets the camera to scene origin
         //camera.setTarget(BABYLON.Vector3.Zero());
@@ -133,7 +139,7 @@
         scene.enablePhysics(new BABYLON.Vector3(0, -9.8, 0), hk);
 
         // Create a sphere shape and the associated body. Size will be determined automatically.
-        const sphereAggregate = new BABYLON.PhysicsAggregate(sphere, BABYLON.PhysicsShapeType.SPHERE, { mass: 2, restitution: .33 }, scene);
+        const sphereAggregate = new BABYLON.PhysicsAggregate(sphere, BABYLON.PhysicsShapeType.SPHERE, { mass: 2, restitution: .5, friction:.5 }, scene);
 
         // Create a static box shape.
         const groundAggregate = new BABYLON.PhysicsAggregate(ground, BABYLON.PhysicsShapeType.BOX, { mass: 0, restitution: 0  }, scene);
@@ -146,8 +152,8 @@
         /*
         const tubeAggregate = new BABYLON.PhysicsAggregate(tube, BABYLON.PhysicsShapeType.CONVEX_HULL, {
             mass: 0,
-            restitution: .5,
-            friction: .5
+            restitution: 0,
+            friction: 0
         }, scene);
         */
 
