@@ -40,6 +40,8 @@
     <div id="canvasZone"><canvas id="renderCanvas"></canvas></div>
     <script>
       const game= {
+          impulseModifier: 20,
+          maxImpulse: 100,
           impulseTime: 0,
           shots: 0
       };
@@ -52,10 +54,6 @@
         // This creates a basic Babylon Scene object (non-mesh)
         const scene = new BABYLON.Scene(engine);
 
-
-
-        // This attaches the camera to the canvas
-        //camera.attachControl(canvas, true);
         // This creates a light, aiming 0,1,0 - to the sky (non-mesh)
         const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
 
@@ -63,6 +61,7 @@
         light.intensity = 0.7;
 
         const green = new BABYLON.StandardMaterial("groundMat");
+
         // Color green
         green.diffuseColor = new BABYLON.Color3(0, .8, 0);
 
@@ -72,11 +71,10 @@
 
         // Create a camera locked to sphere
         const camera = new BABYLON.ArcRotateCamera("camera1", Math.PI/4, Math.PI/4, 10, new BABYLON.Vector3(0,0,0));   
-        //camera.cameraRotation = 0;
-        //camera.noRotationConstraint = true;
-        //camera.heightOffset = 100;
         camera.setPosition(new BABYLON.Vector3(0, 120, -80));
         camera.lockedTarget = sphere; //version 2.5 onwards
+        // This attaches the camera to the canvas
+        camera.attachControl(canvas, true); // Allows mouse control
 
         // Our built-in 'ground' shape.
         const ground = BABYLON.MeshBuilder.CreateGround("ground", { width: 30, height: 30 }, scene);
@@ -113,18 +111,33 @@
               parameter: scene.getMeshByName("sphere"),
           },
           () => {
+            setTimeout(() => {
               alert('Hole in ' + game.shots)
+            }, "1000");
+              
           },
         ));
 
 
         // Bumper using a box shape
-        const bumper1 = BABYLON.MeshBuilder.CreateBox("bumper1", {height: 4, width:30}, scene);
+        const bumper1 = BABYLON.MeshBuilder.CreateBox("bumper1", {height: 5, width:30}, scene);
         bumper1.position.z = -5;
         bumper1.position.y = 1;
+        bumper1.material = green;
 
         const bumper2 = bumper1.clone("bumper2");
         bumper2.position.z = 55;
+        bumper2.material = green;
+
+        const bumper3 = BABYLON.MeshBuilder.CreateBox("bumper3", {height: 5, depth:60}, scene);
+        bumper3.position.z = 25;
+        bumper3.position.y = 1;
+        bumper3.position.x = -15;
+        bumper3.material = green;
+
+        const bumper4 = bumper3.clone("bumper4");
+        bumper4.position.x = 15;
+        bumper4.material = green;
 
         // This targets the camera to scene origin
         //camera.setTarget(BABYLON.Vector3.Zero());
@@ -139,24 +152,20 @@
         scene.enablePhysics(new BABYLON.Vector3(0, -9.8, 0), hk);
 
         // Create a sphere shape and the associated body. Size will be determined automatically.
-        const sphereAggregate = new BABYLON.PhysicsAggregate(sphere, BABYLON.PhysicsShapeType.SPHERE, { mass: 2, restitution: .5, friction:.5 }, scene);
+        const sphereAggregate = new BABYLON.PhysicsAggregate(sphere, BABYLON.PhysicsShapeType.SPHERE, { mass: 2, restitution: .5, friction:.9 }, scene);
 
-        // Create a static box shape.
-        const groundAggregate = new BABYLON.PhysicsAggregate(ground, BABYLON.PhysicsShapeType.BOX, { mass: 0, restitution: 0  }, scene);
+        // Create static box shapes.
+        const groundAggregate = new BABYLON.PhysicsAggregate(ground, BABYLON.PhysicsShapeType.BOX, { mass: 0, restitution: 0 }, scene);
         const bumper1Aggregate = new BABYLON.PhysicsAggregate(bumper1, BABYLON.PhysicsShapeType.BOX, { mass: 0, restitution: 0  }, scene);
         const bumper2Aggregate = new BABYLON.PhysicsAggregate(bumper2, BABYLON.PhysicsShapeType.BOX, { mass: 0, restitution: 0  }, scene);
+        const bumper3Aggregate = new BABYLON.PhysicsAggregate(bumper3, BABYLON.PhysicsShapeType.BOX, { mass: 0, restitution: 0  }, scene);
+        const bumper4Aggregate = new BABYLON.PhysicsAggregate(bumper4, BABYLON.PhysicsShapeType.BOX, { mass: 0, restitution: 0  }, scene);
+
+
+
         // https://www.babylonjs-playground.com/#T6NP3F#0
         // Create a static mesh shape.
-        const holeAggregate = new BABYLON.PhysicsAggregate(hole, BABYLON.PhysicsShapeType.MESH, { mass: 0, restitution: 0  }, scene);
-
-        /*
-        const tubeAggregate = new BABYLON.PhysicsAggregate(tube, BABYLON.PhysicsShapeType.CONVEX_HULL, {
-            mass: 0,
-            restitution: 0,
-            friction: 0
-        }, scene);
-        */
-
+        const holeAggregate = new BABYLON.PhysicsAggregate(hole, BABYLON.PhysicsShapeType.MESH, { mass: 0, restitution: 0 }, scene);
 
         // Pointer input
         scene.onPointerObservable.add((pointerInfo) => {
@@ -166,11 +175,35 @@
               console.log("POINTER DOWN @ " + pointerInfo.event.clientX + ',' +pointerInfo.event.clientY);
               break;
             case BABYLON.PointerEventTypes.POINTERUP:
-              let impulseAmount = (new Date() - game.impulseTime) / 20;
-              let impulse = new BABYLON.Vector3(0, 0, impulseAmount)
+              let impulseAmount = (new Date() - game.impulseTime) / game.impulseModifier;
+              if (impulseAmount > game.maxImpulse) {
+                impulseAmount = game.maxImpulse;
+              }
+              /*
+              // Example of impulse from camera direction
+              let impulseDirection = camera.getDirection(direction); // Rotate the direction into the camera's local space
+              impulseDirection.y = 0; // Discard the y component
+              impulseDirection.normalize(); // Make it of length 1 again
+              sphere.applyImpulse(impulseDirection.scale(5), sphere.position);
+
+              */
+
+              let angle  = camera.getDirection(sphere.position);
+
+              angle.y = 0; // Discard the y component
+              angle.normalize(); // Make it of length 1 again (why?)
+
+
+              // console.log(angle)
+
+              let impulse = new BABYLON.Vector3(impulseAmount * angle.x, 0, impulseAmount * angle.z);
+              //let impulse = new BABYLON.Vector3(angle.scale(impulseAmount));
+
+              //let impulse = new BABYLON.Vector3(impulseAmount * Math.sin(angle), 0, impulseAmount * Math.cos(angle))
+              //let impulse = new BABYLON.Vector3(0, 0, impulseAmount)
               console.log('impulseAmount=' + impulseAmount);
               console.log("POINTER UP @ " + pointerInfo.event.clientX + ',' +pointerInfo.event.clientY);
-              //sphereAggregate.body.applyImpulse(sphereAggregate.body, {x:0, y:impulseAmount, z:0}, sphere.position);
+
               sphereAggregate.body.applyImpulse(impulse, sphere.getAbsolutePosition());
               game.shots++;
               break;
