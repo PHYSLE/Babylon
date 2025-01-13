@@ -34,13 +34,28 @@
         width: 100%;
         height: 100%;
       }
+
+
+      #shotButton {        
+        position: absolute; 
+        bottom: 100px; 
+        width: 100%; 
+        z-index:9999;
+        height: 100px; 
+        width: 100px; 
+        left:calc(50% - 50px);
+        border-radius: 50px;
+        border: 3px solid #FFF;
+        display:block;
+      }
     </style>
   </head>
   <body>
     <div id="canvasZone"><canvas id="renderCanvas"></canvas></div>
+    <a href="javascript:void(0);" id="shotButton">&nbsp;</a>
     <script>
       const game= {
-          impulseModifier: 20,
+          impulseModifier: 15,
           maxImpulse: 100,
           impulseTime: 0,
           shots: 0
@@ -122,7 +137,7 @@
         // Bumper using a box shape
         const bumper1 = BABYLON.MeshBuilder.CreateBox("bumper1", {height: 5, width:30}, scene);
         bumper1.position.z = -5;
-        bumper1.position.y = 1;
+        bumper1.position.y = 2;
         bumper1.material = green;
 
         const bumper2 = bumper1.clone("bumper2");
@@ -131,7 +146,7 @@
 
         const bumper3 = BABYLON.MeshBuilder.CreateBox("bumper3", {height: 5, depth:60}, scene);
         bumper3.position.z = 25;
-        bumper3.position.y = 1;
+        bumper3.position.y = 2;
         bumper3.position.x = -15;
         bumper3.material = green;
 
@@ -161,56 +176,73 @@
         const bumper3Aggregate = new BABYLON.PhysicsAggregate(bumper3, BABYLON.PhysicsShapeType.BOX, { mass: 0, restitution: 0  }, scene);
         const bumper4Aggregate = new BABYLON.PhysicsAggregate(bumper4, BABYLON.PhysicsShapeType.BOX, { mass: 0, restitution: 0  }, scene);
 
-
-
         // https://www.babylonjs-playground.com/#T6NP3F#0
         // Create a static mesh shape.
         const holeAggregate = new BABYLON.PhysicsAggregate(hole, BABYLON.PhysicsShapeType.MESH, { mass: 0, restitution: 0 }, scene);
 
-        // Pointer input
-        scene.onPointerObservable.add((pointerInfo) => {
-          switch (pointerInfo.type) {
-            case BABYLON.PointerEventTypes.POINTERDOWN:
-              game.impulseTime = new Date();
-              console.log("POINTER DOWN @ " + pointerInfo.event.clientX + ',' +pointerInfo.event.clientY);
-              break;
-            case BABYLON.PointerEventTypes.POINTERUP:
-              let impulseAmount = (new Date() - game.impulseTime) / game.impulseModifier;
-              if (impulseAmount > game.maxImpulse) {
-                impulseAmount = game.maxImpulse;
-              }
-              /*
-              // Example of impulse from camera direction
-              let impulseDirection = camera.getDirection(direction); // Rotate the direction into the camera's local space
-              impulseDirection.y = 0; // Discard the y component
-              impulseDirection.normalize(); // Make it of length 1 again
-              sphere.applyImpulse(impulseDirection.scale(5), sphere.position);
+        // Create the UI
+        const shotButton = document.getElementById('shotButton');
+        var intervalId = 0;
 
-              */
-
-              let angle  = camera.getDirection(sphere.position);
-
-              angle.y = 0; // Discard the y component
-              angle.normalize(); // Make it of length 1 again (why?)
-
-
-              // console.log(angle)
-
-              let impulse = new BABYLON.Vector3(impulseAmount * angle.x, 0, impulseAmount * angle.z);
-              //let impulse = new BABYLON.Vector3(angle.scale(impulseAmount));
-
-              //let impulse = new BABYLON.Vector3(impulseAmount * Math.sin(angle), 0, impulseAmount * Math.cos(angle))
-              //let impulse = new BABYLON.Vector3(0, 0, impulseAmount)
-              console.log('impulseAmount=' + impulseAmount);
-              console.log("POINTER UP @ " + pointerInfo.event.clientX + ',' +pointerInfo.event.clientY);
-
-              sphereAggregate.body.applyImpulse(impulse, sphere.getAbsolutePosition());
-              game.shots++;
-              break;
+        function getImpulseAmount() {
+          let impulseAmount = (new Date() - game.impulseTime) / game.impulseModifier;
+          if (impulseAmount > game.maxImpulse) {
+            impulseAmount = game.maxImpulse;
           }
+          return impulseAmount;
+        }
+      
+        shotButton.addEventListener("mousedown", function() {
+          sphereAggregate.body.setAngularVelocity(BABYLON.Vector3.Zero());
+          sphereAggregate.body.setLinearVelocity(BABYLON.Vector3.Zero());
+          game.impulseTime = new Date();
+          intervalId = setInterval(() => {
+            let impulseAmount = getImpulseAmount();
+            console.log(impulseAmount);
+            let r = Math.min(255, (255 * (impulseAmount / 50)));
+            if (impulseAmount < 33) {
+                r = 255 - impulseAmount * 3;
+            }
+            let g = Math.min(255, (255 * ((100 - impulseAmount) / 60)));
+            let b = 255 - impulseAmount * 3;
+            
+            shotButton.style.borderColor = 'rgb('+r+' '+g+' '+b+')';
+          },10);
         });
 
+        shotButton.addEventListener("mouseup", function() {
+          clearInterval(intervalId);
+          shotButton.style.borderColor = 'white';
 
+          let impulseAmount = getImpulseAmount();
+          /*
+          // Example of impulse from camera direction
+          let impulseDirection = camera.getDirection(direction); // Rotate the direction into the camera's local space
+          impulseDirection.y = 0; // Discard the y component
+          impulseDirection.normalize(); // Make it of length 1 again
+          sphere.applyImpulse(impulseDirection.scale(5), sphere.position);
+
+          */
+
+          let angle  = camera.getDirection(sphere.position);
+
+          angle.y = 0; // Discard the y component
+          angle.normalize(); // Make it of length 1 again (why?)
+
+
+          // console.log(angle)
+
+          let impulse = new BABYLON.Vector3(impulseAmount * angle.x, 0, impulseAmount * angle.z);
+          //let impulse = new BABYLON.Vector3(angle.scale(impulseAmount));
+
+          //let impulse = new BABYLON.Vector3(impulseAmount * Math.sin(angle), 0, impulseAmount * Math.cos(angle))
+          //let impulse = new BABYLON.Vector3(0, 0, impulseAmount)
+          console.log('impulseAmount=' + impulseAmount);
+
+
+          sphereAggregate.body.applyImpulse(impulse, sphere.getAbsolutePosition());
+          game.shots++;
+        });
         return scene;
       };
 
