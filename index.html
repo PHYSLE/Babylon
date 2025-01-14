@@ -80,46 +80,88 @@
         // Color green
         green.diffuseColor = new BABYLON.Color3(0, .8, 0);
 
+        /* // 
+        new BABYLON.MeshDebugPluginMaterial(green, {
+            mode: BABYLON.MeshDebugMode.TRIANGLES,
+            wireframeTrianglesColor: new BABYLON.Color3(0, .7, 0),
+            wireframeThickness: 0.5
+        });
+        */
+
         // Our built-in 'sphere' shape.
-        const sphere = BABYLON.MeshBuilder.CreateSphere("sphere", { diameter: 2, segments: 16 }, scene);
+        const sphere = BABYLON.MeshBuilder.CreateSphere("sphere", { diameter: 4, segments: 16 }, scene);
         sphere.position.y = 1;
+        sphere.position.z = 90;
 
         // Create a camera locked to sphere
         const camera = new BABYLON.ArcRotateCamera("camera1", Math.PI/4, Math.PI/4, 10, new BABYLON.Vector3(0,0,0));   
-        camera.setPosition(new BABYLON.Vector3(0, 120, -80));
-        camera.lockedTarget = sphere; //version 2.5 onwards
+        camera.setPosition(new BABYLON.Vector3(0, 140, -100));
+        camera.lockedTarget = sphere; 
         // This attaches the camera to the canvas
         camera.attachControl(canvas, true); // Allows mouse control
 
+        
+        // This targets the camera to scene origin
+        //camera.setTarget(BABYLON.Vector3.Zero());
+        camera.setTarget(sphere.position);
+
         // Our built-in 'ground' shape.
-        const ground = BABYLON.MeshBuilder.CreateGround("ground", { width: 30, height: 30 }, scene);
-        ground.position.z = 10
+        const ground = BABYLON.MeshBuilder.CreateGround("ground", { width: 40, height: 40 }, scene);
+        ground.position.z = 100;
+
         ground.material = green; //Place the material property of the ground
+
+
 
         // Ground with hole using ground subtracted by tube to create a new mesh  
         const tube = BABYLON.MeshBuilder.CreateCylinder("tube", {
-          height:4, 
-          diameterTop:4, 
-          diameterBottom:4, 
+          height:8, 
+          diameterTop:8, 
+          diameterBottom:8, 
           tessellation:16, 
           subdivisions:1
         }, scene);
         tube.position.z = ground.position.z ;
+        tube.position.y = -1 ;
+
 
         // use Constructive Solid Geometry to subtract tube from ground
         // @TODO - use CSG2 instead (CSG2 not working-  Error while creating the CSG: Not manifold)
         var groundCSG = BABYLON.CSG.FromMesh(ground);
         var tubeCSG = BABYLON.CSG.FromMesh(tube);
         var hole = groundCSG.subtract(tubeCSG).toMesh("hole", null, scene);
-        hole.position = new BABYLON.Vector3(0, 0, 40);
+        hole.position = new BABYLON.Vector3(0, 0, 180);
         hole.material = green;
         
         // Remove the tube now that the hole is made
         tube.dispose();
 
+        const cylinder = BABYLON.MeshBuilder.CreateCylinder("cylinder", {
+          height:40, 
+          diameterTop:58, 
+          diameterBottom:64, 
+          tessellation:28, 
+          subdivisions:1
+        }, scene);
+        cylinder.position.z = ground.position.z ;
+        cylinder.position.y = 27 ;
+        cylinder.position.x = 0 ;
+        cylinder.rotation = new BABYLON.Vector3(0, 0, Math.PI/2)
+        var cylinderCSG = BABYLON.CSG.FromMesh(cylinder);
+
+        var dip = groundCSG.subtract(cylinderCSG).toMesh("dip", null, scene);
+        dip.position = new BABYLON.Vector3(0, 0, 140);
+        dip.material = green;
+
+        cylinder.dispose();
+
+        //BABYLON.MeshDebugPluginMaterial.PrepareMeshForTrianglesAndVerticesMode(hole);
+        //BABYLON.MeshDebugPluginMaterial.PrepareMeshForTrianglesAndVerticesMode(dip);
+        //BABYLON.MeshDebugPluginMaterial.PrepareMeshForTrianglesAndVerticesMode(ground);
+
         // Add a trigger at the bottom of the hole to detect intersection with sphere
-        const trigger = BABYLON.MeshBuilder.CreateBox("trigger", {height: 1, width:5, depth:5}, scene);
-        trigger.position = new BABYLON.Vector3(hole.position.x, -2, hole.position.z);
+        const trigger = BABYLON.MeshBuilder.CreateBox("trigger", {height: 1, width:8, depth:8}, scene);
+        trigger.position = new BABYLON.Vector3(hole.position.x, -5, hole.position.z);
         trigger.actionManager = new BABYLON.ActionManager(scene);
         trigger.actionManager.registerAction(new BABYLON.ExecuteCodeAction({
               trigger: BABYLON.ActionManager.OnIntersectionEnterTrigger,
@@ -135,28 +177,27 @@
 
 
         // Bumper using a box shape
-        const bumper1 = BABYLON.MeshBuilder.CreateBox("bumper1", {height: 5, width:30}, scene);
-        bumper1.position.z = -5;
-        bumper1.position.y = 2;
+        const bumper1 = BABYLON.MeshBuilder.CreateBox("bumper1", {height: 10, width:40}, scene);
+        bumper1.position.z = 80;
+        bumper1.position.y = 0;
         bumper1.material = green;
 
         const bumper2 = bumper1.clone("bumper2");
-        bumper2.position.z = 55;
+        bumper2.position.z = 200;
         bumper2.material = green;
 
-        const bumper3 = BABYLON.MeshBuilder.CreateBox("bumper3", {height: 5, depth:60}, scene);
-        bumper3.position.z = 25;
-        bumper3.position.y = 2;
-        bumper3.position.x = -15;
+        const bumper3 = BABYLON.MeshBuilder.CreateBox("bumper3", {height: 10, depth:120}, scene);
+        bumper3.position.z = 140;
+        bumper3.position.y = 0;
+        bumper3.position.x = -20;
         bumper3.material = green;
 
         const bumper4 = bumper3.clone("bumper4");
-        bumper4.position.x = 15;
+        bumper4.position.x = 20;
         bumper4.material = green;
 
-        // This targets the camera to scene origin
-        //camera.setTarget(BABYLON.Vector3.Zero());
-        camera.setTarget(sphere.position);
+
+
 
 
         // initialize plugin
@@ -167,7 +208,7 @@
         scene.enablePhysics(new BABYLON.Vector3(0, -9.8, 0), hk);
 
         // Create a sphere shape and the associated body. Size will be determined automatically.
-        const sphereAggregate = new BABYLON.PhysicsAggregate(sphere, BABYLON.PhysicsShapeType.SPHERE, { mass: 2, restitution: .5, friction:.9 }, scene);
+        const sphereAggregate = new BABYLON.PhysicsAggregate(sphere, BABYLON.PhysicsShapeType.SPHERE, { mass: 2, restitution: .5, friction:1 }, scene);
 
         // Create static box shapes.
         const groundAggregate = new BABYLON.PhysicsAggregate(ground, BABYLON.PhysicsShapeType.BOX, { mass: 0, restitution: 0 }, scene);
@@ -179,10 +220,15 @@
         // https://www.babylonjs-playground.com/#T6NP3F#0
         // Create a static mesh shape.
         const holeAggregate = new BABYLON.PhysicsAggregate(hole, BABYLON.PhysicsShapeType.MESH, { mass: 0, restitution: 0 }, scene);
-
+        const dipAggregate = new BABYLON.PhysicsAggregate(dip, BABYLON.PhysicsShapeType.MESH, { mass: 0, restitution: 0 }, scene);
         // Create the UI
         const shotButton = document.getElementById('shotButton');
         var intervalId = 0;
+
+        var physicsViewer = new BABYLON.Debug.PhysicsViewer();
+
+        physicsViewer.showImpostor(sphereAggregate);
+        physicsViewer.showImpostor(groundAggregate);
 
         function getImpulseAmount() {
           let impulseAmount = (new Date() - game.impulseTime) / game.impulseModifier;
@@ -198,7 +244,7 @@
           game.impulseTime = new Date();
           intervalId = setInterval(() => {
             let impulseAmount = getImpulseAmount();
-            console.log(impulseAmount);
+            //console.log(impulseAmount);
             let r = Math.min(255, (255 * (impulseAmount / 50)));
             if (impulseAmount < 33) {
                 r = 255 - impulseAmount * 3;
@@ -227,16 +273,9 @@
           let angle  = camera.getDirection(sphere.position);
 
           angle.y = 0; // Discard the y component
-          angle.normalize(); // Make it of length 1 again (why?)
-
-
-          // console.log(angle)
+          angle.normalize(); // Make it of length 1 
 
           let impulse = new BABYLON.Vector3(impulseAmount * angle.x, 0, impulseAmount * angle.z);
-          //let impulse = new BABYLON.Vector3(angle.scale(impulseAmount));
-
-          //let impulse = new BABYLON.Vector3(impulseAmount * Math.sin(angle), 0, impulseAmount * Math.cos(angle))
-          //let impulse = new BABYLON.Vector3(0, 0, impulseAmount)
           console.log('impulseAmount=' + impulseAmount);
 
 
