@@ -44,7 +44,7 @@
         height: 100px; 
         width: 100px; 
         left:calc(50% - 50px);
-        border-radius: 50px;
+        border-radius: 52px;
         border: 3px solid #FFF;
         display:block;
       }
@@ -55,10 +55,15 @@
     <a href="javascript:void(0);" id="shotButton">&nbsp;</a>
     <script>
       const game= {
-          impulseModifier: 15,
-          maxImpulse: 100,
+          impulseModifier: 10,
+          maxImpulse: 120,
           impulseTime: 0,
-          shots: 0
+          shots: 0,
+          globals: {
+            FRICTION: .75,
+            GRAVITY: -9.8,
+            DAMPING: .34
+          }
       };
       const canvas = document.getElementById("renderCanvas");
       
@@ -92,6 +97,8 @@
         const sphere = BABYLON.MeshBuilder.CreateSphere("sphere", { diameter: 4, segments: 16 }, scene);
         sphere.position.y = 1;
         sphere.position.z = 90;
+
+
 
         // Create a camera locked to sphere
         const camera = new BABYLON.ArcRotateCamera("camera1", Math.PI/4, Math.PI/4, 10, new BABYLON.Vector3(0,0,0));   
@@ -169,6 +176,8 @@
           },
           () => {
             setTimeout(() => {
+              sphereAggregate.body.setAngularVelocity(BABYLON.Vector3.Zero());
+              sphereAggregate.body.setLinearVelocity(BABYLON.Vector3.Zero());
               alert('Hole in ' + game.shots)
             }, "1000");
               
@@ -196,39 +205,74 @@
         bumper4.position.x = 20;
         bumper4.material = green;
 
-
-
-
-
         // initialize plugin
         const havokInstance = await HavokPhysics();
         // pass the engine to the plugin
         const hk = new BABYLON.HavokPlugin(true, havokInstance);
         // enable physics in the scene with a gravity
-        scene.enablePhysics(new BABYLON.Vector3(0, -9.8, 0), hk);
+        scene.enablePhysics(new BABYLON.Vector3(0, game.globals.GRAVITY, 0), hk);
 
         // Create a sphere shape and the associated body. Size will be determined automatically.
-        const sphereAggregate = new BABYLON.PhysicsAggregate(sphere, BABYLON.PhysicsShapeType.SPHERE, { mass: 2, restitution: .5, friction:1 }, scene);
+        const sphereAggregate = new BABYLON.PhysicsAggregate(sphere, BABYLON.PhysicsShapeType.SPHERE, { 
+            mass: 2, 
+            restitution: .5, 
+            friction:game.globals.FRICTION }, scene);
+
+        // damping is a value between 0 and 1, where 0 is no damping and 1 is full damping.
+        sphereAggregate.body.setLinearDamping(game.globals.DAMPING);
 
         // Create static box shapes.
-        const groundAggregate = new BABYLON.PhysicsAggregate(ground, BABYLON.PhysicsShapeType.BOX, { mass: 0, restitution: 0 }, scene);
-        const bumper1Aggregate = new BABYLON.PhysicsAggregate(bumper1, BABYLON.PhysicsShapeType.BOX, { mass: 0, restitution: 0  }, scene);
-        const bumper2Aggregate = new BABYLON.PhysicsAggregate(bumper2, BABYLON.PhysicsShapeType.BOX, { mass: 0, restitution: 0  }, scene);
-        const bumper3Aggregate = new BABYLON.PhysicsAggregate(bumper3, BABYLON.PhysicsShapeType.BOX, { mass: 0, restitution: 0  }, scene);
-        const bumper4Aggregate = new BABYLON.PhysicsAggregate(bumper4, BABYLON.PhysicsShapeType.BOX, { mass: 0, restitution: 0  }, scene);
+        const groundAggregate = new BABYLON.PhysicsAggregate(ground, BABYLON.PhysicsShapeType.BOX, { 
+            mass: 0, 
+            restitution: 0, 
+            friction:game.globals.FRICTION }, scene);
+
+        const bumper1Aggregate = new BABYLON.PhysicsAggregate(bumper1, BABYLON.PhysicsShapeType.BOX, { 
+            mass: 0, 
+            restitution: 0, 
+            friction:game.globals.FRICTION }, scene);
+        const bumper2Aggregate = new BABYLON.PhysicsAggregate(bumper2, BABYLON.PhysicsShapeType.BOX, { 
+            mass: 0, 
+            restitution: 0, 
+            friction:game.globals.FRICTION }, scene);
+        const bumper3Aggregate = new BABYLON.PhysicsAggregate(bumper3, BABYLON.PhysicsShapeType.BOX, { 
+            mass: 0, 
+            restitution: 0, 
+            friction:game.globals.FRICTION }, scene);
+        const bumper4Aggregate = new BABYLON.PhysicsAggregate(bumper4, BABYLON.PhysicsShapeType.BOX, { 
+            mass: 0, 
+            restitution: 0, 
+            friction:game.globals.FRICTION }, scene);
 
         // https://www.babylonjs-playground.com/#T6NP3F#0
         // Create a static mesh shape.
-        const holeAggregate = new BABYLON.PhysicsAggregate(hole, BABYLON.PhysicsShapeType.MESH, { mass: 0, restitution: 0 }, scene);
-        const dipAggregate = new BABYLON.PhysicsAggregate(dip, BABYLON.PhysicsShapeType.MESH, { mass: 0, restitution: 0 }, scene);
+        const holeAggregate = new BABYLON.PhysicsAggregate(hole, BABYLON.PhysicsShapeType.MESH, { 
+            mass: 0, 
+            restitution: 0, 
+            friction:game.globals.FRICTION }, scene);
+        const dipAggregate = new BABYLON.PhysicsAggregate(dip, BABYLON.PhysicsShapeType.MESH, {
+            mass: 0, 
+            restitution: 0, 
+            friction:game.globals.FRICTION }, scene);
+
+
+        // we need to know when the ball stops rolling...
+        scene.actionManager = new BABYLON.ActionManager(scene);
+        scene.actionManager.registerAction(new BABYLON.ExecuteCodeAction({
+              trigger: BABYLON.ActionManager.OnEveryFrameTrigger
+          },
+          () => {
+            //console.log(sphereAggregate.body.getLinearVelocity());
+            if(sphereAggregate.body.getLinearVelocity() == BABYLON.Vector3.Zero()) {          
+              console.log('Ball stopped')
+            }
+
+          }
+        ));
+        
         // Create the UI
         const shotButton = document.getElementById('shotButton');
         var intervalId = 0;
-
-        var physicsViewer = new BABYLON.Debug.PhysicsViewer();
-
-        physicsViewer.showImpostor(sphereAggregate);
-        physicsViewer.showImpostor(groundAggregate);
 
         function getImpulseAmount() {
           let impulseAmount = (new Date() - game.impulseTime) / game.impulseModifier;
@@ -255,6 +299,10 @@
             shotButton.style.borderColor = 'rgb('+r+' '+g+' '+b+')';
           },10);
         });
+        shotButton.addEventListener("mouseout", function() {
+          clearInterval(intervalId);
+          shotButton.style.borderColor = 'white';
+        })
 
         shotButton.addEventListener("mouseup", function() {
           clearInterval(intervalId);

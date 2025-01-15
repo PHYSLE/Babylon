@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <link rel="stylesheet" href="/css/golf.css" />
+    <script src="/node_modules/@babylonjs/havok/lib/umd/HavokPhysics_umd.js"></script>
+    <script src="/node_modules/babylonjs/babylon.js"></script>
+    <script src="/golf.js"></script>
+    <title>PHYSLE Golf</title>
+  </head>
+  <body>
+    <div id="canvasWrapper"><canvas id="canvas"></canvas></div>
+    <a href="javascript:void(0);" id="shotButton">&nbsp;</a>
+    <script>
+      var shotButton = document.getElementById('shotButton');
+
+      var golf = new Game();
+      golf.init().then(() => {
+        //console.log(golf);
+        golf.addGround("flat",0,0,100);
+        var m = golf.addGround("flat",0,0,140);
+        golf.addHole(m);
+        golf.addBall(0,2,100);
+        golf.run();
+      });
+
+      // hanlde resize
+      window.addEventListener("resize", function () {
+        golf.engine.resize();
+      });
+
+      shotButton.addEventListener("click", function () {
+        golf.shoot();
+      });
+
+      
+    </script>
+  </body>
+</html>
