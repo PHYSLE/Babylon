@@ -10,17 +10,19 @@
   </head>
   <body>
     <div id="canvasWrapper"><canvas id="canvas"></canvas></div>
-    <a href="javascript:void(0);" id="shotButton">&nbsp;</a>
+    <a href="javascript:void(0);" id="shotButton"></a>
     <script>
       var shotButton = document.getElementById('shotButton');
 
       var golf = new Game();
       golf.init().then(() => {
         //console.log(golf);
-        golf.addGround("flat",0,0,100);
-        var m = golf.addGround("flat",0,0,140);
-        golf.addHole(m);
         golf.addBall(0,2,100);
+        golf.addGround("flat",0,0,100,"0011");
+        golf.addCorner(0,0,160,0);
+        golf.addCorner(60,0,100,Math.PI);
+        var m = golf.addGround("flat",60,0,160,"1100");
+        golf.addHole(m);
         golf.run();
       });
 
