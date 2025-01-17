@@ -1,13 +1,5 @@
 function Game() {
     const game = {
-        engine: null,
-        scene: null,
-        camera: null,
-        ball: null, 
-        ballAggregate: null,
-        bumperRoot: null,
-        impulseTime: 0,
-        shots: 0,
         globals: {
             restitution: .5,
             friction: .75,
@@ -17,6 +9,41 @@ function Game() {
             maxImpulse: 120,
             tileSize: 60
         },
+        engine: null,
+        scene: null,
+        camera: null,
+        ball: {
+            mesh: null,
+            body: null,
+            events: new EventTarget(),
+            stopped: false,
+            strike: function(impulse) {
+                this.stopped = false;
+                this.body.applyImpulse(impulse, this.mesh.position);
+            },
+            stop:function() {  
+                this.stopped = true;
+                this.body.setAngularVelocity(BABYLON.Vector3.Zero());
+                this.body.setLinearVelocity(BABYLON.Vector3.Zero());   
+                this.events.dispatchEvent(new Event('stop'));
+            },
+            get velocity() {
+                let v = this.body.getLinearVelocity();
+                return (Math.abs(v.x) + Math.abs(v.z));
+            }
+        }, 
+        physicsBody: null,
+        bumperRoot: null,
+        impulseTime: 0,
+        getImpulseAmount: function() {
+            let amount= (new Date() - this.impulseTime) / this.globals.impulseModifier;
+            if (amount > this.globals.maxImpulse) {
+                amount = this.globals.maxImpulse;
+            }
+            return amount;
+        },
+        strokes: 0,
+
         materials: {
             ground: null
         },
@@ -46,6 +73,16 @@ function Game() {
             this.bumperRoot = BABYLON.MeshBuilder.CreateBox("bumper", {height: 10, width:this.globals.tileSize, depth: 1}, this.scene);
             this.bumperRoot.material = this.materials.ground;
             this.bumperRoot.isVisible = false;
+        },
+        addBumper: function(x, y, z, rotation) {
+            const bumper = this.bumperRoot.createInstance("bumper");
+            bumper.position = new BABYLON.Vector3(x, y, z);
+            bumper.rotation = new BABYLON.Vector3(0, rotation, 0);
+            
+            const aggregate = new BABYLON.PhysicsAggregate(bumper, BABYLON.PhysicsShapeType.BOX, { 
+                mass: 0, 
+                restitution: 0, 
+                friction: 0 }, this.scene);
         },
         addGround: function(template, x, y, z, bumpers="0000") {
             const ground = BABYLON.MeshBuilder.CreateGround("ground", { 
@@ -106,35 +143,22 @@ function Game() {
                 restitution: 0, 
                 friction: 0 }, this.scene);
 
-            cylinder.dispose();
-            
-            box.dispose(); // delete the original mesh   
-
-            
-        },
-        addBumper: function(x, y, z, rotation) {
-            const bumper = this.bumperRoot.createInstance("bumper");
-            bumper.position = new BABYLON.Vector3(x, y, z);
-            bumper.rotation = new BABYLON.Vector3(0, rotation, 0);
-            
-
-            const aggregate = new BABYLON.PhysicsAggregate(bumper, BABYLON.PhysicsShapeType.BOX, { 
-                mass: 0, 
-                restitution: 0, 
-                friction: 0 }, this.scene);
+            // delete the cylinder and original mesh 
+            cylinder.dispose();           
+            box.dispose();   
         },
         addBall: function(x, y, z) {
             const ball = BABYLON.MeshBuilder.CreateSphere("ball", { diameter: 4, segments: 16 }, this.scene);
             ball.position = new BABYLON.Vector3(x, y, z);
+            this.camera.lockedTarget = ball; 
+            this.ball.mesh = ball;
 
             const aggregate = new BABYLON.PhysicsAggregate(ball, BABYLON.PhysicsShapeType.SPHERE, { 
                 mass: 2, 
                 restitution: this.globals.restitution, 
                 friction: this.globals.friction }, this.scene);
             aggregate.body.setLinearDamping(game.globals.damping);
-            this.ball = ball
-            this.ballAggregate = aggregate.body;
-            this.camera.lockedTarget = ball; 
+            this.ball.body = aggregate.body;
 
             return ball;
         },
@@ -175,43 +199,48 @@ function Game() {
                     parameter: this.ball
                 }, () => {
                   setTimeout(() => {
-                    this.ballAggregate.setAngularVelocity(BABYLON.Vector3.Zero());
-                    this.ballAggregate.setLinearVelocity(BABYLON.Vector3.Zero());
-                    alert('Hole in ' + this.shots)
+                    this.ball.stop();
+                    this.ball.events.dispatchEvent(new Event('hole'))
                   }, "1000");
                 },
             ));
                        
             return hole;
         },
-        shoot: function() {
-            let impulseAmount = 50; // todo
-            let angle = this.camera.alpha + Math.PI;
-            let impulse = new BABYLON.Vector3(impulseAmount * Math.cos(angle), 0, impulseAmount * Math.sin(angle));
-
-            this.ballAggregate.applyImpulse(impulse, this.ball.position);
-            game.shots++;
+        swing: function() {
+            this.impulseTime = new Date();
+        },
+        strike: function() {
+            if (this.ball.stopped) {
+                let a = this.getImpulseAmount()
+                let angle = this.camera.alpha + Math.PI;
+                let impulse = new BABYLON.Vector3(a * Math.cos(angle), 0, a * Math.sin(angle));
+                this.ball.strike(impulse);
+                game.strokes++;
+            }
         },
         run: function() {
             game.scene.actionManager = new BABYLON.ActionManager(game.scene);
-            /*
+
             game.scene.actionManager.registerAction(new BABYLON.ExecuteCodeAction({
-                trigger: BABYLON.ActionManager.OnEveryFrameTrigger
-                },
+                trigger: BABYLON.ActionManager.OnEveryFrameTrigger }, 
                 () => {
-                //console.log(sphereAggregate.body.getLinearVelocity());
-                //if(sphereAggregate.body.getLinearVelocity() == BABYLON.Vector3.Zero()) {          
-                    //console.log('Ball stopped')
-                //}
+                    //console.log('velocity = ' + game.ball.velocity);
+                    if (!game.ball.stopped && game.ball.velocity < 1) {
+                        game.ball.stop();
+                    }
                 }
             ));
-            */
+
             game.engine.runRenderLoop(function () {
                 if (game.scene) {
                     game.scene.render();
                 }
             });  
-        }
+        },
+        addEventListener:function(type, callback, options = {}) {
+            this.ball.events.addEventListener(type, callback, options);
+        },
     }
 
     return game;

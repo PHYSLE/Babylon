@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+  </head>
+  <body>
+    <div><a href="javascript:tree.pick()">PICK</a></div>
+    <div id="apples">100 APPLES</div>
+  </body>
+  <script>
+    function Tree() {
+        const o = {
+            target:new EventTarget(),
+            addEventListener:function(type, callback, options = {}) {
+                this.target.addEventListener(type, callback, options);
+            },
+            apples:100,
+            pick:function()
+            {
+                this.apples--;
+                console.log(this.apples + ' apples');
+                this.target.dispatchEvent(new Event('pick'));
+            }
+        }
+
+        return o;
+    }
+
+    var tree = new Tree();
+    tree.addEventListener("pick" , function() {
+        document.getElementById('apples').innerHTML = tree.apples + ' APPLES';
+    });
+
+  </script>
+</html>
