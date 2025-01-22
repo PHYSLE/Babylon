@@ -21,10 +21,11 @@
       golf.init().then(() => {
         //console.log(golf);
         golf.addBall(0,2,100);
-        golf.addGround("flat",0,0,100,"0011");
+        golf.addGround(0,0,100,"0011");
         golf.addCorner(0,0,160,0);
         golf.addCorner(60,0,100,Math.PI);
-        var m = golf.addGround("flat",60,0,160,"1100");
+        golf.addBarrier(30,0,130,"circle",20);
+        var m = golf.addGround(60,0,160,"1100");
         golf.addHole(m);
         golf.run();
       });
@@ -43,6 +44,7 @@
       });
 
       shotButton.addEventListener("mousedown", function() {
+        shotButton.style.borderColor = '#FFF';
         golf.swing();
         intervalId = setInterval(() => {
           let a = golf.getImpulseAmount();
@@ -51,17 +53,18 @@
           let b = 255 - a * 3;
 
           shotButton.style.borderColor = 'rgb('+r+' '+g+' '+b+')';
+          
         },10);
       });
 
       shotButton.addEventListener("mouseout", function() {
         clearInterval(intervalId);
-        shotButton.style.borderColor = 'white';
       })
 
       shotButton.addEventListener("mouseup", function() {
         clearInterval(intervalId);
-        shotButton.style.border = '3px dashed #FFF';
+        //shotButton.style.border = '3px dashed #FFF';
+        shotButton.style.borderStyle = 'dashed'
         scoreCard.innerHTML = 'Stroke ' + golf.strokes;
         golf.strike();
       });
