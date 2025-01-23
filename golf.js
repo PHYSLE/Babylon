@@ -14,6 +14,7 @@ function Game() {
         scene: null,
         camera: null,
         ball: {
+            diameter: 4,
             mesh: null,
             body: null,
             events: new EventTarget(),
@@ -29,7 +30,6 @@ function Game() {
                 return (Math.abs(v.x) + Math.abs(v.z));
             }
         }, 
-        aimLine: null,
         bumperRoot: null,
         impulseTime: 0,
         getImpulseAmount: function() {
@@ -47,7 +47,10 @@ function Game() {
         init: async function() {
             const canvas = document.getElementById("canvas");
 
-            this.engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true, disableWebGL2Support: false });
+            this.engine = new BABYLON.Engine(canvas, true, { 
+                preserveDrawingBuffer: true, 
+                stencil: true, 
+                disableWebGL2Support: false });
             this.scene = new BABYLON.Scene(this.engine);
         
             // create a light aiming at 0,1,0
@@ -155,7 +158,11 @@ function Game() {
             switch(shape) {
                 case "circle":
                     mesh = BABYLON.MeshBuilder.CreateCylinder("barrier", {
-                        height:this.globals.bumperHeight/2, diameterTop:size, diameterBottom:size, tessellation:24, subdivisions:1
+                        height:this.globals.bumperHeight/2, 
+                        diameterTop:size, 
+                        diameterBottom:size, 
+                        tessellation:24, 
+                        subdivisions:1
                     }, this.scene);
                     physicsShape = BABYLON.PhysicsShapeType.CYLINDER;
                 break;
@@ -176,7 +183,9 @@ function Game() {
 
         },
         addBall: function(x, y, z) {
-            const ball = BABYLON.MeshBuilder.CreateSphere("ball", { diameter: 4, segments: 16 }, this.scene);
+            const ball = BABYLON.MeshBuilder.CreateSphere("ball", { 
+                diameter: this.ball.diameter, 
+                segments: 16 }, this.scene);
             ball.position = new BABYLON.Vector3(x, y, z);
             this.camera.lockedTarget = ball; 
             this.ball.mesh = ball;
@@ -235,38 +244,62 @@ function Game() {
                        
             return hole;
         },
+
+        aimLine: [],
         renderAimLine: false,
-        refreshAimLine: function() {
-            if (this.aimLine) {
-                this.aimLine.dispose();
+        disposeAimLine: function() {
+            console.log('disposing ' + this.aimLine.length + ' segments')
+            if (this.aimLine.length > 0) {
+                for(let i=0; i<this.aimLine.length; i++) {
+                    this.aimLine[i].dispose();
+                }
+                this.aimLine = [];
             }
-            let a = this.getImpulseAmount()
-            let angle = this.camera.alpha + Math.PI;
-            let impulse = new BABYLON.Vector3(a * Math.cos(angle), 0, a * Math.sin(angle));
-
-            let target = this.ball.mesh.position.add(impulse);
-
-            const options = {
-                useVertexAlpha: true,
-                points: [this.ball.mesh.position, target],
-                updatable: true,
-            };
-            
-            this.aimLine = BABYLON.MeshBuilder.CreateLines("line", options, this.scene);      
-            this.aimLine.alpha = 0.5;
         },
+        refreshAimLine: function() {
+            let aimLineSegments = 10; 
+            let a = (this.getImpulseAmount() * (1 + this.globals.damping)) / aimLineSegments;
+            let angle = this.camera.alpha + Math.PI;
+            let len = new BABYLON.Vector3(a * Math.cos(angle), 0, a * Math.sin(angle));
+            let offset = BABYLON.Vector3.Zero();
+            let distance = this.ball.diameter + 1; // start aim line this far from ball
+            let padding = new BABYLON.Vector3(distance * Math.cos(angle), 0, distance * Math.sin(angle));
+
+            for(let i=0; i<aimLineSegments; i++) {
+                offset = len.multiply(new BABYLON.Vector3(i, 0, i));
+                let start = this.ball.mesh.position.add(offset).add(padding);
+                let end = start.add(len);
+
+                const options = {
+                    useVertexAlpha: true,
+                    points: [start, end],
+                    updatable: true, // may not need this because we can't add points
+                };
+                let line = BABYLON.MeshBuilder.CreateLines("line", options, this.scene);    
+                line.alpha = 1-(i/aimLineSegments);
+                this.aimLine.push(line);
+            } 
+            // dispose after create to avoid blinking
+            if (this.aimLine.length > aimLineSegments * 2) {
+                for(let i=0; i<aimLineSegments; i++) {
+                    this.aimLine[0].dispose();
+                    this.aimLine.shift();
+                }
+            }
+        },
+     
         swing: function() {
-            this.renderAimLine = true;
             if (this.ball.stopped) {
                 this.impulseTime = new Date();
+                this.renderAimLine = true;
+                // this.predictPath(); WiP prediction.js
             }
         },
         strike: function() {
             if (this.ball.stopped) {
                 this.renderAimLine = false;
-                if (this.aimLine) {
-                   this.aimLine.dispose();
-                }
+                //this.disposeAimLine();
+                clearInterval(this.aimLineInterval);
                 let a = this.getImpulseAmount()
                 let angle = this.camera.alpha + Math.PI;
                 let impulse = new BABYLON.Vector3(a * Math.cos(angle), 0, a * Math.sin(angle));
@@ -289,11 +322,15 @@ function Game() {
             ));
 
             game.engine.runRenderLoop(function () {
+                var step = 0;
                 if (game.scene) {
                     game.scene.render();
                     if (game.renderAimLine) {
-                        game.refreshAimLine();
+                        if (step % 200 == 0) {
+                            game.refreshAimLine();
+                        }
                     }
+                    step++;
                 }
             });  
         },

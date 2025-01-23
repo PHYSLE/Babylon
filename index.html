@@ -15,9 +15,8 @@
     <script>
       var shotButton = document.getElementById('shotButton');
       var scoreCard = document.getElementById('scoreCard');
-      var intervalId = 0;
-
       var golf = new Game();
+      
       golf.init().then(() => {
         //console.log(golf);
         golf.addBall(0,2,100);
@@ -31,7 +30,7 @@
       });
 
       golf.addEventListener("stop", function() {
-        shotButton.style.border = '3px solid #FFF';
+        shotButton.style.borderStyle = 'solid'
       });
 
       golf.addEventListener("hole", function() {
@@ -44,29 +43,15 @@
       });
 
       shotButton.addEventListener("mousedown", function() {
-        shotButton.style.borderColor = '#FFF';
-        golf.swing();
-        intervalId = setInterval(() => {
-          let a = golf.getImpulseAmount();
-          let r = (a < 33) ? 255 - a * 3 : Math.min(255, (255 * (a / 50)));
-          let g = Math.min(255, (255 * ((100 - a) / 60)));
-          let b = 255 - a * 3;
 
-          shotButton.style.borderColor = 'rgb('+r+' '+g+' '+b+')';
-          
-        },10);
+        golf.swing();
+
       });
 
-      shotButton.addEventListener("mouseout", function() {
-        clearInterval(intervalId);
-      })
-
       shotButton.addEventListener("mouseup", function() {
-        clearInterval(intervalId);
-        //shotButton.style.border = '3px dashed #FFF';
+        golf.strike();
         shotButton.style.borderStyle = 'dashed'
         scoreCard.innerHTML = 'Stroke ' + golf.strokes;
-        golf.strike();
       });
     
     </script>

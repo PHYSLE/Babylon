@@ -1,8 +1,8 @@
 @font-face {
-  font-family: "YuseiMagic";
+  font-family: "PoiretOne";
   src:
-    local("YuseiMagic"),
-    url("/css/YuseiMagic-Regular.ttf"),
+    local("PoiretOne"),
+    url("/css/PoiretOne-Regular.ttf"),
 }
 
 html,
@@ -28,7 +28,7 @@ body {
 #scoreCard {
   color:#FFF;
   position: absolute; 
-  font-family: 'YuseiMagic';
+  font-family: 'PoiretOne';
   font-size:30px;
   top: 20px;
   left: 20px;
@@ -43,6 +43,6 @@ body {
   width: 100px; 
   left:calc(50% - 50px);
   border-radius: 52px;
-  border: 3px solid #FFF;
+  border: 2px solid #FFF;
   display:block;
 }
