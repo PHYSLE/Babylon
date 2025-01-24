@@ -6,26 +6,73 @@
     <script src="/node_modules/@babylonjs/havok/lib/umd/HavokPhysics_umd.js"></script>
     <script src="/node_modules/babylonjs/babylon.js"></script>
     <script src="/golf.js"></script>
+    <script src="/course.js"></script>
     <title>PHYSLE Golf</title>
   </head>
   <body>
-    <div id="scoreCard">Stroke 0</div>
+    <div id="scoreDisplay"><a href="javascript:void(0);">Stroke 0</a></div>
+    <div id="scoreCard">
+      <h2 style="float:left;">Score Card</h2>        
+      <div style="float:right; margin-top:-10px;">
+        <a href="javascript:void(0)" id="x">&times;</a>
+      </div>
+      <table id="scoreTable"></table>
+    </div>
     <div id="canvasWrapper"><canvas id="canvas"></canvas></div>
     <a href="javascript:void(0);" id="shotButton"></a>
     <script>
       var shotButton = document.getElementById('shotButton');
       var scoreCard = document.getElementById('scoreCard');
+      var scoreDisplay = document.getElementById('scoreDisplay');
+
+      function updateScoreCard(course) {
+        var rows = '<tr><th>Hole</th><th style="width:60px;">Par</th><th style="width:60px;">Player</th></tr>';
+        var totals = {par:0, strokes:0};
+        for(var i=0; i<course.holes.length; i++) {
+          var h = course.holes[i];
+          totals.par += h.par;
+          totals.strokes += h.strokes;
+          rows +='<tr><td>'+ (i+1) + ' ' + h.name+ '</td><td>'+h.par+
+            '</td><td>'+(h.strokes == 0 ? '': h.strokes)+'</td></tr>';
+        }
+        rows +='<tr><th>Total</th><th>'+totals.par+'</th><th>'+totals.strokes+'</th></th>'
+        document.getElementById('scoreTable').innerHTML = rows;
+      }
+
+      function loadNext() {
+        shotButton.innerHTML = '';
+          course.current++;
+          console.log('current course  = ' + course.current)
+          golf.scene.dispose();
+          golf.engine.dispose();
+          golf = new Game();
+          
+          golf.init().then(() => {
+            course.currentHole.build(golf);
+            golf.addEventListener("stop", function() {
+              shotButton.style.borderStyle = 'solid'
+            });
+
+            golf.addEventListener("hole", onHole);
+            golf.run();
+            scoreCard.style.display = 'none';
+          });
+      }
+
+      function onHole() {
+        golf.paused = true;
+        course.currentHole.complete = true;
+        scoreCard.style.display = 'block'
+        shotButton.innerHTML = '<br />Next';
+      }
+
       var golf = new Game();
+      var course = new Course();
+
+      updateScoreCard(course);
       
       golf.init().then(() => {
-        //console.log(golf);
-        golf.addBall(0,2,100);
-        golf.addGround(0,0,100,"0011");
-        golf.addCorner(0,0,160,0);
-        golf.addCorner(60,0,100,Math.PI);
-        golf.addBarrier(30,0,130,"circle",20);
-        var m = golf.addGround(60,0,160,"1100");
-        golf.addHole(m);
+        course.currentHole.build(golf);
         golf.run();
       });
 
@@ -33,9 +80,7 @@
         shotButton.style.borderStyle = 'solid'
       });
 
-      golf.addEventListener("hole", function() {
-        scoreCard.innerHTML = 'Hole in ' + golf.strokes;
-      });
+      golf.addEventListener("hole", onHole);
 
       // handle resize
       window.addEventListener("resize", function () {
@@ -43,17 +88,38 @@
       });
 
       shotButton.addEventListener("mousedown", function() {
+        if (course.currentHole.complete) {
+          loadNext();
+        }
+        else {
+          golf.swing();
+        }
+      });
 
-        golf.swing();
-
+      shotButton.addEventListener("mouseout", function() {
+        golf.disposeAimLine();
+        golf.renderAimLine = false;
       });
 
       shotButton.addEventListener("mouseup", function() {
-        golf.strike();
-        shotButton.style.borderStyle = 'dashed'
-        scoreCard.innerHTML = 'Stroke ' + golf.strokes;
+        if (!course.currentHole.complete && !golf.paused && golf.impulseTime != 0) {
+          golf.strike();
+          shotButton.style.borderStyle = 'dashed'
+          course.currentHole.strokes++;
+          scoreDisplay.firstChild.innerHTML = 'Stroke ' + course.currentHole.strokes;
+          updateScoreCard(course);
+        }
       });
-    
+
+      document.getElementById('x').addEventListener("click", function() {
+        golf.paused = false;
+        scoreCard.style.display = 'none';
+      });
+
+      document.getElementById('scoreDisplay').addEventListener("click", function() {
+        scoreCard.style.display =  scoreCard.style.display == 'block' ? 'none':'block';
+        golf.paused = scoreCard.style.display == 'block';
+      });
     </script>
   </body>
 </html>

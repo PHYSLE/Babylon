@@ -14,6 +14,13 @@ body {
   padding: 0;
 }
 
+h2 {
+  font-family: 'PoiretOne';  
+  font-size:30px;
+  font-weight: bold;
+  margin-top: 0px;
+}
+
 #canvas {
   width: 100%;
   height: 100%;
@@ -23,15 +30,6 @@ body {
 #canvasWrapper {
   width: 100%;
   height: 100%;
-}
-
-#scoreCard {
-  color:#FFF;
-  position: absolute; 
-  font-family: 'PoiretOne';
-  font-size:30px;
-  top: 20px;
-  left: 20px;
 }
 
 #shotButton {        
@@ -45,4 +43,54 @@ body {
   border-radius: 52px;
   border: 2px solid #FFF;
   display:block;
+  color:#FFF;
+  text-decoration:none;
+  text-align: center;
+  font-family: 'PoiretOne';
+  font-size:26px;
 }
+
+#scoreDisplay {
+  color:#FFF;
+  position: absolute; 
+  font-family: 'PoiretOne';
+  font-size:30px;
+  top: 20px;
+  left: 20px;
+}
+
+#scoreDisplay a {
+  color:#FFF;
+  text-decoration:none;
+}
+
+#scoreCard {
+  display: none;
+  background-color: #FFF;
+  position: absolute; 
+  font-family: sans-serif;
+  top: 100px;
+  width: 400px;
+  left:calc(50% - 200px);
+  padding:20px;
+  background-image: url('/assets/paper.jpg');
+}
+
+#scoreCard table {
+  width:100%;
+  border-collapse: collapse;
+  text-align:left;
+}
+
+#x {
+  color:#000;
+  font-size:40px;
+  text-decoration:none; 
+}
+
+td, th {
+  padding: 6px;
+  border: 1px solid #999;
+}
+
+

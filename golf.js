@@ -10,6 +10,7 @@ function Game() {
             tileSize: 60,
             bumperHeight: 12
         },
+        paused: false,
         engine: null,
         scene: null,
         camera: null,
@@ -39,8 +40,6 @@ function Game() {
             }
             return amount;
         },
-        strokes: 0,
-
         materials: {
             green: null,
             bumper: null
@@ -76,15 +75,14 @@ function Game() {
             // create materials
             this.materials.green = new BABYLON.StandardMaterial("greenmat");
             this.materials.green.diffuseColor = new BABYLON.Color3(.6, .8, .6);
-            this.materials.green.diffuseTexture = new BABYLON.Texture("/assets/green-seamless.jpg");
+            this.materials.green.diffuseTexture = new BABYLON.Texture("/assets/green.jpg");
             this.materials.green.diffuseTexture.uScale = 1;
             this.materials.green.diffuseTexture.vScale = 1;
 
             this.materials.bumper = new BABYLON.StandardMaterial("bumpermat");
             this.materials.bumper.diffuseColor = new BABYLON.Color3(.2, .4, .15);
 
-
-
+            // root mesh for bumper instances
             this.bumperRoot = BABYLON.MeshBuilder.CreateBox("bumper", {
                 height: this.globals.bumperHeight, width:this.globals.tileSize, depth: 1}, this.scene);
             this.bumperRoot.material = this.materials.bumper;
@@ -154,14 +152,14 @@ function Game() {
             box.material = this.materials.ground;
             
             const cylinder = BABYLON.MeshBuilder.CreateCylinder("tube", {
-                height:15, 
+                height:20, 
                 diameterTop:this.globals.tileSize * 2-1, 
                 diameterBottom:this.globals.tileSize * 2-1, 
                 tessellation:64, 
                 subdivisions:1
             }, this.scene);
 
-            cylinder.position = new BABYLON.Vector3(x+this.globals.tileSize/2, y+5, z-this.globals.tileSize/2);
+            cylinder.position = new BABYLON.Vector3(x+this.globals.tileSize/2, y, z-this.globals.tileSize/2);
             var boxCSG = BABYLON.CSG.FromMesh(box);
             var cylinderCSG = BABYLON.CSG.FromMesh(cylinder);
 
@@ -169,16 +167,18 @@ function Game() {
             corner.position = new BABYLON.Vector3(x, y, z);
             corner.rotation = new BABYLON.Vector3(0, rotation, 0);
             corner.material = this.materials.bumper;
-            corner.receiveShadows = true;
+
 
             new BABYLON.PhysicsAggregate(corner, BABYLON.PhysicsShapeType.MESH, { 
                 mass: 0, 
                 restitution: 0, 
                 friction: 0 }, this.scene);
 
-            // delete the cylinder and original mesh 
+            // delete the cylinder and box
             cylinder.dispose();           
             box.dispose();   
+
+            return ground;
         },
         addBarrier: function(x, y, z, shape, size) {
             var mesh = null
@@ -280,7 +280,7 @@ function Game() {
         aimLine: [],
         renderAimLine: false,
         disposeAimLine: function() {
-            console.log('disposing ' + this.aimLine.length + ' segments')
+            //console.log('disposing ' + this.aimLine.length + ' segments')
             if (this.aimLine.length > 0) {
                 for(let i=0; i<this.aimLine.length; i++) {
                     this.aimLine[i].dispose();
@@ -328,7 +328,7 @@ function Game() {
             }
         },
         strike: function() {
-            if (this.ball.stopped) {
+            if (this.ball.stopped && this.impulseTime != 0) {
                 this.renderAimLine = false;
                 this.disposeAimLine();
                 clearInterval(this.aimLineInterval);
@@ -338,7 +338,7 @@ function Game() {
                 
                 this.ball.stopped = false;
                 this.ball.body.applyImpulse(impulse, this.ball.mesh.position);
-                game.strokes++;
+
             }
         },
         run: function() {
@@ -355,7 +355,7 @@ function Game() {
 
             game.engine.runRenderLoop(function () {
                 var step = 0;
-                if (game.scene) {
+                if (game.scene && !game.paused) {
                     game.scene.render();
                     if (game.renderAimLine) {
                         if (step % 200 == 0) {
