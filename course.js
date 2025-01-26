@@ -6,6 +6,17 @@ function Course() {
       },
       holes: [
         {
+            name:'Hole One',
+            par:1,
+            strokes:0,
+            complete:false,
+            build:function(golf) {
+                golf.addBall(0,2,80);
+                var m = golf.addGround(0,0,100,{bumpers:"1111"});
+                golf.addHole(m);
+            }
+        },
+        {
             name:'U-Turn',
             par:3,
             strokes:0,
