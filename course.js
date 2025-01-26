@@ -6,18 +6,17 @@ function Course() {
       },
       holes: [
         {
-            name:'Dog Leg',
+            name:'U-Turn',
             par:3,
             strokes:0,
             complete:false,
             build:function(golf) {
                 golf.addBall(0,2,100);
-                golf.addGround(0,0,100,"0011");
-                golf.addCorner(0,0,160,0);
-                var m = golf.addGround(60,0,100,"0111");
-                //golf.addBarrier(30,0,130,"circle",20);
-                golf.addCorner(60,0,160,Math.PI/2);
-                golf.addHole(m);       
+                golf.addGround(0,0,100,{bumpers:"0011"});
+                golf.addCorner(0,0,160);
+                var m = golf.addGround(60,0,100,{bumpers:"0111"});
+                golf.addCorner(60,0,160,{rotation:Math.PI/2});
+                golf.addHole(m);
             }
         },
         {
@@ -27,12 +26,12 @@ function Course() {
             complete:false,
             build:function(golf) {
                 golf.addBall(0,2,100);
-                golf.addGround(0,0,100,"0011");
-                golf.addCorner(0,0,160,0);
-                golf.addCorner(60,0,100,Math.PI);
-                golf.addBarrier(30,0,130,"circle",20);
-                var m = golf.addGround(60,0,160,"1100");
-                golf.addHole(m);       
+                golf.addGround(0,0,100,{bumpers:"0011"});
+                golf.addCorner(0,0,160);
+                golf.addCorner(60,0,100,{rotation:Math.PI});
+                golf.addBarrier(30,0,130,{shape:"circle",size:20});
+                var m = golf.addGround(60,0,160,{bumpers:"1100"});
+                golf.addHole(m);
             }
         },
       ]
