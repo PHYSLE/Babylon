@@ -6,13 +6,15 @@ function Course() {
       },
       holes: [
         {
-            name:'Hole One',
-            par:1,
+            name:'Slope Up',
+            par:2,
             strokes:0,
             complete:false,
             build:function(golf) {
-                golf.addBall(0,2,80);
-                var m = golf.addGround(0,0,100,{bumpers:"1111"});
+                golf.addBall(0,2,100);
+                golf.addGround(0,0,100,{bumpers:"0111"});
+                golf.addGround(0,6,158,{bumpers:"0101", rotation:{x:-.2,y:0,z:0}});
+                var m = golf.addGround(0,12,216,{bumpers:"1101"});
                 golf.addHole(m);
             }
         },

@@ -12,7 +12,7 @@
   <body>
     <div id="scoreDisplay"><a href="javascript:void(0);">Stroke 0</a></div>
     <div id="scoreCard">
-      <h2 style="float:left;">Score Card</h2>        
+      <h2 style="float:left;">Score Card</h2>
       <div style="float:right; margin-top:-10px;">
         <a href="javascript:void(0)" id="x">&times;</a>
       </div>
@@ -45,8 +45,9 @@
           console.log('current course  = ' + course.current)
           golf.scene.dispose();
           golf.engine.dispose();
+          scoreDisplay.firstChild.innerHTML = 'Stroke 0';
           golf = new Game();
-          
+
           golf.init().then(() => {
             course.currentHole.build(golf);
             golf.addEventListener("stop", function() {
@@ -70,7 +71,7 @@
       var course = new Course();
 
       updateScoreCard(course);
-      
+
       golf.init().then(() => {
         course.currentHole.build(golf);
         golf.run();

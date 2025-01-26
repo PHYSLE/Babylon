@@ -91,8 +91,9 @@ function Game() {
         addBumper: function(x, y, z, options) {
             const bumper = this.bumperRoot.createInstance("bumper");
             bumper.position = new BABYLON.Vector3(x, y, z);
-            bumper.rotation = new BABYLON.Vector3(0, options.rotation, 0);
-
+            if (options.rotation) {
+                bumper.rotation = new BABYLON.Vector3(options.rotation.x, options.rotation.y, options.rotation.z );
+            }
             const aggregate = new BABYLON.PhysicsAggregate(bumper, BABYLON.PhysicsShapeType.BOX, {
                 mass: 0,
                 restitution: 0,
@@ -113,24 +114,32 @@ function Game() {
                 mass: 0,
                 restitution: 0,
                 friction: 0 }, this.scene);
-            if (options.bumpers) {
-                /* top | right | bottom | left */
-                for(let i=0; i<4; i++) {
-                    if (options.bumpers[i]=="1") {
-                        switch(i) {
-                            case 0: this.addBumper(x, y, z + this.globals.tileSize/2, {rotation:0});
-                                break;
-                            case 1: this.addBumper(x + this.globals.tileSize/2, y, z, {rotation:Math.PI/2});
-                                break;
-                            case 2: this.addBumper(x, y, z - this.globals.tileSize/2, {rotation:0});
-                                break;
-                            case 3: this.addBumper(x - this.globals.tileSize/2, y, z, {rotation:Math.PI/2});
-                                break;
-                        }
-                    }
-                }
-            }
-            return ground;
+                if (options.bumpers) {
+                  /* top | right | bottom | left */
+                  for(let i=0; i<4; i++) {
+                      var r = BABYLON.Vector3.Zero();
+                      if (options.rotation ) {
+                          r = new BABYLON.Vector3(options.rotation.z, options.rotation.y, options.rotation.x);
+                      }
+                      if (options.bumpers[i]=="1") {
+                          switch(i) {
+                              case 0: this.addBumper(x, y, z + this.globals.tileSize/2, {rotation:r});
+                                  break;
+                              case 1:
+                                  r = r.add(new  BABYLON.Vector3(0, Math.PI/2, 0));
+                                  this.addBumper(x + this.globals.tileSize/2, y, z, {rotation:r});
+                                  break;
+                              case 2: this.addBumper(x, y, z - this.globals.tileSize/2, {rotation:r});
+                                  break;
+                              case 3:
+                                  r = r.add(new  BABYLON.Vector3(0, Math.PI/2, 0));
+                                  this.addBumper(x - this.globals.tileSize/2, y, z, {rotation:r});
+                                  break;
+                          }
+                      }
+                  }
+              }
+              return ground;
         },
         addCorner: function(x, y, z, options) {
             const ground = BABYLON.MeshBuilder.CreateGround("ground", {
@@ -267,7 +276,7 @@ function Game() {
             mesh.dispose(); // delete the original mesh
 
             const trigger = BABYLON.MeshBuilder.CreateBox("trigger", {height: 1, width:8, depth:8}, this.scene);
-            trigger.position = new BABYLON.Vector3(hole.position.x, -5, hole.position.z);
+            trigger.position = new BABYLON.Vector3(hole.position.x, hole.position.y-5, hole.position.z);
             trigger.actionManager = new BABYLON.ActionManager(this.scene);
 
             trigger.actionManager.registerAction(new BABYLON.ExecuteCodeAction({
