@@ -8,7 +8,7 @@ function Game() {
             impulseModifier: 10,
             maxImpulse: 120,
             tileSize: 60,
-            bumperHeight: 12
+            bumperHeight: 14
         },
         paused: false,
         engine: null,
@@ -81,23 +81,27 @@ function Game() {
 
             this.materials.bumper = new BABYLON.StandardMaterial("bumpermat");
             this.materials.bumper.diffuseColor = new BABYLON.Color3(.2, .4, .15);
+            
+            this.materials.shadow = new BABYLON.StandardMaterial("bumpermat");
+            this.materials.shadow.diffuseColor = new BABYLON.Color3(0, .1, 0);
 
             // root mesh for bumper instances
             this.bumperRoot = BABYLON.MeshBuilder.CreateBox("bumper", {
-                height: this.globals.bumperHeight, width:this.globals.tileSize, depth: 1}, this.scene);
+                height: this.globals.bumperHeight, width:this.globals.tileSize+1, depth: 1}, this.scene);
             this.bumperRoot.material = this.materials.bumper;
             this.bumperRoot.isVisible = false;
         },
         addBumper: function(x, y, z, options) {
             const bumper = this.bumperRoot.createInstance("bumper");
             bumper.position = new BABYLON.Vector3(x, y, z);
-            if (options.rotation) {
+            if (options && options.rotation) {
                 bumper.rotation = new BABYLON.Vector3(options.rotation.x, options.rotation.y, options.rotation.z );
             }
             const aggregate = new BABYLON.PhysicsAggregate(bumper, BABYLON.PhysicsShapeType.BOX, {
                 mass: 0,
                 restitution: 0,
                 friction: 0 }, this.scene);
+            return bumper;
         },
         addGround: function(x, y, z, options) {
             const ground = BABYLON.MeshBuilder.CreateGround("ground", {
@@ -106,33 +110,33 @@ function Game() {
             ground.position = new BABYLON.Vector3(x, y, z);
             ground.material = this.materials.green;
             ground.receiveShadows = true;
-            if (options.rotation) {
-                ground.rotation = new BABYLON.Vector3(options.rotation.x, options.rotation.y, options.rotation.z);
+            if (options && options.rotation) {
+                ground.rotation = new BABYLON.Vector3(options.rotation.x, 0, options.rotation.z);
             }
 
             const aggregate = new BABYLON.PhysicsAggregate(ground, BABYLON.PhysicsShapeType.BOX, {
                 mass: 0,
                 restitution: 0,
                 friction: 0 }, this.scene);
-                if (options.bumpers) {
+                if (options && options.bumpers) {
                   /* top | right | bottom | left */
                   for(let i=0; i<4; i++) {
                       var r = BABYLON.Vector3.Zero();
                       if (options.rotation ) {
-                          r = new BABYLON.Vector3(options.rotation.z, options.rotation.y, options.rotation.x);
+                          r = new BABYLON.Vector3(options.rotation.x, 0, options.rotation.z);
                       }
                       if (options.bumpers[i]=="1") {
                           switch(i) {
                               case 0: this.addBumper(x, y, z + this.globals.tileSize/2, {rotation:r});
                                   break;
                               case 1:
-                                  r = r.add(new  BABYLON.Vector3(0, Math.PI/2, 0));
+                                  r = new BABYLON.Vector3(r.z, r.y, r.x).add(new  BABYLON.Vector3(0, Math.PI/2, 0));
                                   this.addBumper(x + this.globals.tileSize/2, y, z, {rotation:r});
                                   break;
                               case 2: this.addBumper(x, y, z - this.globals.tileSize/2, {rotation:r});
                                   break;
                               case 3:
-                                  r = r.add(new  BABYLON.Vector3(0, Math.PI/2, 0));
+                                  r = new BABYLON.Vector3(r.z, r.y, r.x).add(new  BABYLON.Vector3(0, Math.PI/2, 0));
                                   this.addBumper(x - this.globals.tileSize/2, y, z, {rotation:r});
                                   break;
                           }
@@ -239,6 +243,7 @@ function Game() {
                 restitution: this.globals.restitution,
                 friction: this.globals.friction }, this.scene);
             aggregate.body.setLinearDamping(game.globals.damping);
+            aggregate.body.disablePreStep = false; // disablePreStep allows moving the ball manually
             this.ball.body = aggregate.body;
             for(let i=0; i<this.shadows.length; i++) {
                 this.shadows[i].getShadowMap().renderList.push(ball);
@@ -276,7 +281,7 @@ function Game() {
             mesh.dispose(); // delete the original mesh
 
             const trigger = BABYLON.MeshBuilder.CreateBox("trigger", {height: 1, width:8, depth:8}, this.scene);
-            trigger.position = new BABYLON.Vector3(hole.position.x, hole.position.y-5, hole.position.z);
+            trigger.position = new BABYLON.Vector3(hole.position.x, hole.position.y-5, hole.position.z); 
             trigger.actionManager = new BABYLON.ActionManager(this.scene);
 
             trigger.actionManager.registerAction(new BABYLON.ExecuteCodeAction({
@@ -291,6 +296,100 @@ function Game() {
             ));
 
             return hole;
+        },
+        addTunnel(x,y,z,options) {
+            const box = BABYLON.MeshBuilder.CreateBox("box", {
+                width: this.globals.tileSize+1,
+                height: this.globals.bumperHeight,
+                depth: 10}, this.scene);
+            box.position = new BABYLON.Vector3(x, y, z);
+            const cylinder = BABYLON.MeshBuilder.CreateCylinder("tube", {
+                height:10,
+                diameterTop:7,
+                diameterBottom:7,
+                tessellation:16,
+                subdivisions:1
+            }, this.scene);
+
+            cylinder.position = new BABYLON.Vector3(x, y + 3, z - 1); // @todo -
+            cylinder.rotation = new BABYLON.Vector3(Math.PI/2, 0, 0);
+
+            // use Constructive Solid Geometry to subtract tube from ground
+            // @TODO - use CSG2 instead (CSG2 not working-  Error while creating the CSG: Not manifold)
+            var boxCSG = BABYLON.CSG.FromMesh(box);
+            var cylinderCSG = BABYLON.CSG.FromMesh(cylinder);
+            var tunnel = boxCSG.subtract(cylinderCSG).toMesh("tunnel", null, this.scene);
+            tunnel.position = new BABYLON.Vector3(x, y, z);
+            var rotation = options && options.rotation ? new BABYLON.Vector3(0, options.rotation, 0) : BABYLON.Vector3.Zero();
+            tunnel.rotation = rotation;
+
+            tunnel.material = this.materials.bumper;
+            //tunnel.receiveShadows = true;
+            
+            new BABYLON.PhysicsAggregate(tunnel, BABYLON.PhysicsShapeType.MESH, {
+                mass: 0,
+                restitution: 0,
+                friction: 0 }, this.scene);
+                
+            cylinder.dispose();
+            box.dispose(); // delete the original mesh
+
+            if (options && options.target) {
+            
+                let ball = this.ball;
+
+
+                const trigger = BABYLON.MeshBuilder.CreateBox("trigger", {height: 8, width:8, depth:2}, this.scene);
+                console.log(rotation)
+                trigger.rotation = rotation;
+                let offset = new BABYLON.Vector3(4 * Math.cos(tunnel.rotation), 0, 4 * Math.sin(tunnel.rotation));
+
+                trigger.position = new BABYLON.Vector3(tunnel.position.x, tunnel.position.y + 1, tunnel.position.z);//.add(offset); // @todo fix +4
+                
+
+                trigger.rotation = tunnel.rotation;
+                //trigger.material = this.materials.shadow;
+
+                trigger.actionManager = new BABYLON.ActionManager(this.scene);
+                trigger.actionManager.registerAction(new BABYLON.ExecuteCodeAction({
+                        trigger: BABYLON.ActionManager.OnIntersectionEnterTrigger,
+                        parameter: this.ball.mesh
+                    }, () => {
+                        ball.stop();
+                        ball.mesh.isVisible = false;
+                        var p = options.target.position.add(new BABYLON.Vector3(0, 3, 0));
+                        BABYLON.Animation.CreateAndStartAnimation('cam', ball.mesh, 'position', 
+                            30, // FPS
+                            60, // Total frames                    
+                            trigger.position, p, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT);
+                        
+                        ball.mesh.isVisible = false;
+                        let angle = options.target.rotation.x //- Math.PI/2;
+                        setTimeout(() => {
+                            ball.mesh.isVisible = true;
+                            
+                            ball.stop();
+                            console.log(ball.mesh.position + ' moved to ' + p)
+                            ball.mesh.setAbsolutePosition(p);
+                            let a = (Math.random() * 40) + 40;
+                            
+                            let impulse = new BABYLON.Vector3(a * Math.cos(angle), 0, a * Math.sin(angle));
+                            ball.body.applyImpulse(impulse, ball.mesh.position);
+                        }, "2000");
+                    },
+                ));
+            }
+
+            return tunnel;
+/*
+            const target = tunnel.clone("target");
+            target.rotation = new BABYLON.Vector3(0, -Math.PI/2, 0); //@todo remove pi/2
+            target.position = new BABYLON.Vector3(options.target.x,options.target.y,options.target.z);
+            new BABYLON.PhysicsAggregate(target, BABYLON.PhysicsShapeType.MESH, {
+                mass: 0,
+                restitution: 0,
+                friction: 0 }, this.scene);
+*/
         },
 
         aimLine: [],
