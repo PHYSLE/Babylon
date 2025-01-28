@@ -17,7 +17,6 @@ function Course() {
               golf.addBarrier(0,0,130,{shape:"circle",size:20});
               var t = golf.addTunnel(25.5, -14, 160,{rotation:-Math.PI/2});
               golf.addTunnel(0,0,186, {target: t});
-              golf.addTunnel(-25,0,100, {target: t, rotation:-Math.PI/2});
               golf.addGround(60,-14,160,{bumpers:"1100"});
               var m = golf.addGround(60,-14,100,{bumpers:"0111"});
               golf.addHole(m);

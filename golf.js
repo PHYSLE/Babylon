@@ -26,6 +26,10 @@ function Game() {
                 this.body.setLinearVelocity(BABYLON.Vector3.Zero());
                 this.events.dispatchEvent(new Event('stop'));
             },
+            moved:function() {
+                this.stopped = false;
+                this.events.dispatchEvent(new Event('move'));
+            },
             get velocity() {
                 let v = this.body.getLinearVelocity();
                 return (Math.abs(v.x) + Math.abs(v.z));
@@ -321,75 +325,56 @@ function Game() {
             var tunnel = boxCSG.subtract(cylinderCSG).toMesh("tunnel", null, this.scene);
             tunnel.position = new BABYLON.Vector3(x, y, z);
             var rotation = options && options.rotation ? new BABYLON.Vector3(0, options.rotation, 0) : BABYLON.Vector3.Zero();
-            tunnel.rotation = rotation;
+            tunnel.rotation.copyFrom(rotation);
 
             tunnel.material = this.materials.bumper;
             //tunnel.receiveShadows = true;
-            
+
             new BABYLON.PhysicsAggregate(tunnel, BABYLON.PhysicsShapeType.MESH, {
                 mass: 0,
                 restitution: 0,
                 friction: 0 }, this.scene);
-                
+
+
             cylinder.dispose();
             box.dispose(); // delete the original mesh
 
-            if (options && options.target) {
-            
+            if (options && options.target) {          
                 let ball = this.ball;
-
-
                 const trigger = BABYLON.MeshBuilder.CreateBox("trigger", {height: 8, width:8, depth:2}, this.scene);
-                console.log(rotation)
-                trigger.rotation = rotation;
-                let offset = new BABYLON.Vector3(4 * Math.cos(tunnel.rotation), 0, 4 * Math.sin(tunnel.rotation));
-
-                trigger.position = new BABYLON.Vector3(tunnel.position.x, tunnel.position.y + 1, tunnel.position.z);//.add(offset); // @todo fix +4
-                
-
-                trigger.rotation = tunnel.rotation;
-                //trigger.material = this.materials.shadow;
-
+                trigger.rotation.copyFrom(rotation);
+                let offset = new BABYLON.Vector3(4 * Math.sin(rotation.y).toFixed(3), 1, 4 * Math.cos(rotation.y).toFixed(3));
+                trigger.position = new BABYLON.Vector3(tunnel.position.x, tunnel.position.y, tunnel.position.z).add(offset);
+                trigger.material = this.materials.shadow;
                 trigger.actionManager = new BABYLON.ActionManager(this.scene);
                 trigger.actionManager.registerAction(new BABYLON.ExecuteCodeAction({
                         trigger: BABYLON.ActionManager.OnIntersectionEnterTrigger,
                         parameter: this.ball.mesh
                     }, () => {
-                        ball.stop();
                         ball.mesh.isVisible = false;
                         var p = options.target.position.add(new BABYLON.Vector3(0, 3, 0));
                         BABYLON.Animation.CreateAndStartAnimation('cam', ball.mesh, 'position', 
                             30, // FPS
-                            60, // Total frames                    
+                            60, // Total frames ( could make variable depending on distance)  
                             trigger.position, p, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT);
                         
                         ball.mesh.isVisible = false;
-                        let angle = options.target.rotation.x //- Math.PI/2;
+                        let angle = options.target.rotation.x;
                         setTimeout(() => {
                             ball.mesh.isVisible = true;
-                            
                             ball.stop();
-                            console.log(ball.mesh.position + ' moved to ' + p)
+                            //console.log(ball.mesh.position + ' moved to ' + p)
                             ball.mesh.setAbsolutePosition(p);
                             let a = (Math.random() * 40) + 40;
                             
                             let impulse = new BABYLON.Vector3(a * Math.cos(angle), 0, a * Math.sin(angle));
                             ball.body.applyImpulse(impulse, ball.mesh.position);
-                        }, "2000");
+                        }, "2000"); // see Total frames
                     },
                 ));
             }
 
             return tunnel;
-/*
-            const target = tunnel.clone("target");
-            target.rotation = new BABYLON.Vector3(0, -Math.PI/2, 0); //@todo remove pi/2
-            target.position = new BABYLON.Vector3(options.target.x,options.target.y,options.target.z);
-            new BABYLON.PhysicsAggregate(target, BABYLON.PhysicsShapeType.MESH, {
-                mass: 0,
-                restitution: 0,
-                friction: 0 }, this.scene);
-*/
         },
 
         aimLine: [],
@@ -450,8 +435,7 @@ function Game() {
                 let a = this.getImpulseAmount()
                 let angle = this.camera.alpha + Math.PI;
                 let impulse = new BABYLON.Vector3(a * Math.cos(angle), 0, a * Math.sin(angle));
-
-                this.ball.stopped = false;
+                ///this.ball.stopped = false;
                 this.ball.body.applyImpulse(impulse, this.ball.mesh.position);
 
             }
@@ -464,6 +448,9 @@ function Game() {
                 () => { // set a min threshold for velocity
                     if (!game.ball.stopped && game.ball.velocity < 1) {
                         game.ball.stop();
+                    }
+                    else if (game.ball.stopped && game.ball.velocity >= 1) {
+                        game.ball.moved();
                     }
                 }
             ));

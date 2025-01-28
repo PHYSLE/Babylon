@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+
+<title>MATH</title>
+</head>
+
+<body>
+<pre id="pre"></pre>
+</body>
+
+
+<script>
+    var pre = document.getElementById('pre');
+    var a = Math.PI/2
+    var d = 4;
+    var h = 'a='+a + ', d=' + d +
+        '\nMath.cos(a)=' + Math.cos(a) +
+        '\nMath.sin(a)=' + Math.sin(a) +
+        '\nx=' + Math.round(Math.cos(a) * d) +
+        '\ny=' + Math.round(Math.sin(a) * d) 
+     pre.innerHTML = h;
+</script>
+</html>

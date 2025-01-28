@@ -81,6 +81,10 @@
         shotButton.style.borderStyle = 'solid'
       });
 
+      golf.addEventListener("move", function() {
+        shotButton.style.borderStyle = 'dashed'
+      });
+
       golf.addEventListener("hole", onHole);
 
       // handle resize
@@ -92,7 +96,7 @@
         if (course.currentHole.complete) {
           loadNext();
         }
-        else {
+        else if (golf.ball.stopped) {
           golf.swing();
         }
       });
@@ -103,7 +107,7 @@
       });
 
       shotButton.addEventListener("mouseup", function() {
-        if (!course.currentHole.complete && !golf.paused && golf.impulseTime != 0) {
+        if (golf.ball.stopped && !course.currentHole.complete && !golf.paused && golf.impulseTime != 0 ) {
           golf.strike();
           shotButton.style.borderStyle = 'dashed'
           course.currentHole.strokes++;
