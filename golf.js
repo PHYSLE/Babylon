@@ -200,38 +200,71 @@ function Game() {
             return ground;
         },
         addBarrier: function(x, y, z, options) {
-            var mesh = null
+            var mesh = null;
             var physicsShape = null;
-            var shape = "circle", size = 30
-            if (options) {
-              shape = options.shape;
-              size = options.size;
+            if (!options) {
+                options = {shape: "circle", size: 30}
             }
-            switch(shape) {
+            switch(options.shape) {
                 case "circle":
                     mesh = BABYLON.MeshBuilder.CreateCylinder("barrier", {
                         height:this.globals.bumperHeight/2,
-                        diameterTop:size,
-                        diameterBottom:size,
-                        tessellation:size < 20 ? 24 : 32,
+                        diameterTop:options.size,
+                        diameterBottom:options.size,
+                        tessellation:options.size < 20 ? 24 : 32,
                         subdivisions:1
                     }, this.scene);
+                    mesh.position = new BABYLON.Vector3(x, y + this.globals.bumperHeight/4, z);
+
                     physicsShape = BABYLON.PhysicsShapeType.CYLINDER;
                 break;
                 case "box":
                     mesh = BABYLON.MeshBuilder.CreateBox("barrier", {
-                        height:this.globals.bumperHeight/2, width: size, depth: size
+                        height:this.globals.bumperHeight/2, 
+                        width: options.size, 
+                        depth: options.size
                     }, this.scene);
+                    mesh.position = new BABYLON.Vector3(x, y + this.globals.bumperHeight/4, z);
+                    
                     physicsShape = BABYLON.PhysicsShapeType.BOX;
+                break;
+                case "bump":
+                    const box = BABYLON.MeshBuilder.CreateBox("box", {
+                        height: this.globals.tileSize*2, 
+                        width: this.globals.tileSize*2, 
+                        depth: this.globals.tileSize*2
+                    }, this.scene);
+                    var y1 = +800;
+                    box.position = new BABYLON.Vector3(x, y-this.globals.tileSize, z);
+                    const ball = BABYLON.MeshBuilder.CreateSphere("ball", {
+                        diameter: options.size*2,
+                        segments: 32 }, this.scene);
 
+                    ball.position = new BABYLON.Vector3(x, y - options.size*.85, z);
+                    var boxCSG = BABYLON.CSG.FromMesh(box);
+                    var ballCSG = BABYLON.CSG.FromMesh(ball);
+
+                    ball.dispose();
+                    box.dispose();
+
+                    var mesh = ballCSG.subtract(boxCSG).toMesh("barrier", null, this.scene);
+
+                    mesh.position = new BABYLON.Vector3(x, y - options.size*.85, z);
+                    
+                    physicsShape = BABYLON.PhysicsShapeType.MESH;
                 break;
             }
-            mesh.position = new BABYLON.Vector3(x, this.globals.bumperHeight/4, z);
+
             mesh.material = this.materials.bumper;
+
+            if (options && options.rotation) {
+                mesh.rotation = new BABYLON.Vector3(options.rotation.x, options.rotation.y, options.rotation.z );
+            }
             const aggregate = new BABYLON.PhysicsAggregate(mesh, physicsShape, {
                 mass: 0,
                 restitution: 0,
                 friction: 0 }, this.scene);
+            return mesh;
 
         },
         addBall: function(x, y, z) {
@@ -432,12 +465,11 @@ function Game() {
                 this.renderAimLine = false;
                 this.disposeAimLine();
                 clearInterval(this.aimLineInterval);
+
                 let a = this.getImpulseAmount()
                 let angle = this.camera.alpha + Math.PI;
                 let impulse = new BABYLON.Vector3(a * Math.cos(angle), 0, a * Math.sin(angle));
-                ///this.ball.stopped = false;
                 this.ball.body.applyImpulse(impulse, this.ball.mesh.position);
-
             }
         },
         run: function() {

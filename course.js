@@ -6,6 +6,35 @@ function Course() {
       },
       holes: [
       {
+          name:'Bullseye',
+          par:2,
+          strokes:0,
+          complete:false,
+          build:function(golf) {
+            golf.addBall(0,2,100);
+            golf.addCorner(0,0,100,{rotation:-Math.PI/2});
+            golf.addCorner(0,0,160);
+            golf.addCorner(60,0,100,{rotation:Math.PI});
+            golf.addBarrier(30,0,130,{shape:"bump",size:30});
+            var m = golf.addCorner(60,0,160,{rotation:Math.PI/2});
+            golf.addHole(m);
+          }
+      }, 
+      {
+          name:'Dog Leg',
+          par:2,
+          strokes:0,
+          complete:false,
+          build:function(golf) {
+              golf.addBall(0,2,100);
+              golf.addGround(0,0,100,{bumpers:"0111"});
+              golf.addCorner(0,0,160);
+              golf.addGround(59,-6,160,{bumpers:"1010", rotation:{x:0,y:0,z:-.2}});
+              var m = golf.addGround(117,-12,160,{bumpers:"1110"});
+              golf.addHole(m);
+          }
+      }, 
+      {
           name:'Rabbit Hole',
           par:3,
           strokes:0,
@@ -22,20 +51,7 @@ function Course() {
               golf.addHole(m);
           }
       },
-      {
-          name:'Around and Down',
-          par:2,
-          strokes:0,
-          complete:false,
-          build:function(golf) {
-              golf.addBall(0,2,100);
-              golf.addGround(0,0,100,{bumpers:"0111"});
-              golf.addCorner(0,0,160);
-              golf.addGround(59,-6,160,{bumpers:"1010", rotation:{x:0,y:0,z:-.2}});
-              var m = golf.addGround(117,-12,160,{bumpers:"1110"});
-              golf.addHole(m);
-          }
-      },      
+     
       {
           name:'Bird\'s Eye',
           par:2,
