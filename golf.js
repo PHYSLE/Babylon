@@ -351,8 +351,6 @@ function Game() {
             cylinder.position = new BABYLON.Vector3(x, y + 3, z - 1); // @todo -
             cylinder.rotation = new BABYLON.Vector3(Math.PI/2, 0, 0);
 
-            // use Constructive Solid Geometry to subtract tube from ground
-            // @TODO - use CSG2 instead (CSG2 not working-  Error while creating the CSG: Not manifold)
             var boxCSG = BABYLON.CSG.FromMesh(box);
             var cylinderCSG = BABYLON.CSG.FromMesh(cylinder);
             var tunnel = boxCSG.subtract(cylinderCSG).toMesh("tunnel", null, this.scene);
@@ -387,7 +385,7 @@ function Game() {
                         let outlet = options.target.position.add(new BABYLON.Vector3(0, 3, 0));                      
                         let secs = (BABYLON.Vector3.Distance(trigger.position,outlet)/20).toFixed(0);
 
-                        console.log('secs=' + secs)
+                        //console.log('secs=' + secs)
 
                         BABYLON.Animation.CreateAndStartAnimation('cam', ball.mesh, 'position', 
                             30, // FPS

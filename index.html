@@ -42,9 +42,14 @@
       function loadNext() {
         shotButton.innerHTML = '';
           course.current++;
-          console.log('current course  = ' + course.current)
-          golf.scene.dispose();
-          golf.engine.dispose();
+          
+          //console.log('current course  = ' + course.current)
+          if (golf.scene) {
+            golf.scene.dispose();
+          }
+          if (golf.engine) {
+            golf.engine.dispose();
+          }
           scoreDisplay.firstChild.innerHTML = 'Stroke 0';
           golf = new Game();
 
@@ -54,7 +59,13 @@
               shotButton.style.borderStyle = 'solid'
             });
 
-            golf.addEventListener("hole", onHole);
+            golf.addEventListener("hole", function() {
+              golf.paused = true;
+              course.currentHole.complete = true;
+              scoreCard.style.display = 'block'
+              shotButton.innerHTML = '<br />Next';
+            });
+
             golf.run();
             scoreCard.style.display = 'none';
           });
@@ -63,12 +74,8 @@
       var golf = new Game();
       var course = new Course();
 
+      loadNext();
       updateScoreCard(course);
-
-      golf.init().then(() => {
-        course.currentHole.build(golf);
-        golf.run();
-      });
 
       golf.addEventListener("stop", function() {
         shotButton.style.borderStyle = 'solid'
@@ -76,13 +83,6 @@
 
       golf.addEventListener("move", function() {
         shotButton.style.borderStyle = 'dashed'
-      });
-
-      golf.addEventListener("hole", function() {
-        golf.paused = true;
-        course.currentHole.complete = true;
-        scoreCard.style.display = 'block'
-        shotButton.innerHTML = '<br />Next';
       });
 
       window.addEventListener("resize", function () {

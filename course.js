@@ -1,6 +1,6 @@
 function Course() {
     return {
-      current: 1,
+      current: 0,
       get currentHole() {
         return this.holes[this.current-1]
       },
