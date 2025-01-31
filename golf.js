@@ -384,25 +384,34 @@ function Game() {
                         trigger: BABYLON.ActionManager.OnIntersectionEnterTrigger,
                         parameter: this.ball.mesh
                     }, () => {
-                        ball.mesh.isVisible = false;
-                        var p = options.target.position.add(new BABYLON.Vector3(0, 3, 0));
+                        let outlet = options.target.position.add(new BABYLON.Vector3(0, 3, 0));                      
+                        let secs = (BABYLON.Vector3.Distance(trigger.position,outlet)/20).toFixed(0);
+
+                        console.log('secs=' + secs)
+
                         BABYLON.Animation.CreateAndStartAnimation('cam', ball.mesh, 'position', 
                             30, // FPS
-                            60, // Total frames ( could make variable depending on distance)  
-                            trigger.position, p, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT);
+                            30*secs, // Total frames 
+                            trigger.position, outlet, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT);
                         
                         ball.mesh.isVisible = false;
-                        let angle = options.target.rotation.x;
+
+                        let q = options.target.absoluteRotationQuaternion
+                        let angles = q.toEulerAngles();
+                        let angle = (angles.y + Math.PI/2).toFixed(3);
+
                         setTimeout(() => {
+                            //console.log('tunnel impulse angle=' + angle)
                             ball.mesh.isVisible = true;
                             ball.stop();
-                            //console.log(ball.mesh.position + ' moved to ' + p)
-                            ball.mesh.setAbsolutePosition(p);
-                            let a = (Math.random() * 40) + 40;
-                            
-                            let impulse = new BABYLON.Vector3(a * Math.cos(angle), 0, a * Math.sin(angle));
+                            ball.mesh.setAbsolutePosition(outlet);
+                            let amount = (Math.random() * 30) + 50;
+                            //console.log('amount='+ amount);
+
+                            // not sure why the -sin is needed here
+                            let impulse = new BABYLON.Vector3(amount * Math.cos(angle), 0, amount * -Math.sin(angle));
                             ball.body.applyImpulse(impulse, ball.mesh.position);
-                        }, "2000"); // see Total frames
+                        }, 1000*secs); // see Total frames
                     },
                 ));
             }

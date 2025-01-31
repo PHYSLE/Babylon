@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <script src="/node_modules/@babylonjs/havok/lib/umd/HavokPhysics_umd.js"></script>
+    <script src="/node_modules/babylonjs/babylon.js"></script>
+    <style>
+      #canvas {
+        width: 100%;
+        height: 100%;
+        touch-action: none;
+      }
+
+      #canvasWrapper {
+        width: 100%;
+        height: 100%;
+      }
+      #a {
+        z-index: 99999; 
+        position:absolute; 
+        top:10px; 
+        left:10px;
+        color:#FFF;
+        font-size:30px;
+      }
+    </style>
+</head>
+<body>
+  <a id="a">CLICK</a>
+    <div id="canvasWrapper"><canvas id="canvas"></canvas></div>
+    <script>
+      var mesh = null, initRot=0;
+      const canvas = document.getElementById("canvas");
+      const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true, disableWebGL2Support: false });
+      const createScene = async function () {
+
+        var globals = {
+            restitution: .5,
+            friction: .75,
+            gravity: -9.8
+        }
+        // This creates a basic Babylon Scene object (non-mesh)
+        const scene = new BABYLON.Scene(engine);
+        const camera = new BABYLON.ArcRotateCamera("camera", Math.PI/4, Math.PI/4, 10, new BABYLON.Vector3(0,0,0));
+        camera.setPosition(new BABYLON.Vector3(0, 140, -100));
+        camera.attachControl(canvas, true);
+
+        // enable Havok
+        const havok = await HavokPhysics();
+        scene.enablePhysics(new BABYLON.Vector3(0, globals.gravity, 0), new BABYLON.HavokPlugin(true, havok));
+        // This creates a light, aiming 0,1,0 - to the sky (non-mesh)
+        const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+
+        // Default intensity is 1. Let's dim the light a small amount
+        light.intensity = 0.7;
+
+
+        const ground = BABYLON.MeshBuilder.CreateGround("ground", { width: 80, height: 80 }, scene);
+        const groundAggregate = new BABYLON.PhysicsAggregate(ground, BABYLON.PhysicsShapeType.BOX, { 
+            mass: 0, 
+            restitution: 0, 
+            friction:globals.FRICTION }, scene);
+
+
+        const ball1 = BABYLON.MeshBuilder.CreateSphere("ball1", { diameter: 4, segments: 16 }, scene);
+        ball1.position= new BABYLON.Vector3(0, 2, -30)
+        ball1.collisionGroup = 1;
+        const aggregate = new BABYLON.PhysicsAggregate(ball1, 
+             BABYLON.PhysicsShapeType.SPHERE, { 
+               mass: 2, 
+               restitution: globals.restitution, 
+               friction: globals.friction }, scene);
+
+        const ball2 = BABYLON.MeshBuilder.CreateSphere("ball1", { diameter: 4, segments: 16 }, scene);
+        ball2.position= new BABYLON.Vector3(0, 2, 30)
+        ball2.collisionGroup = 2;
+        const aggregate2 = new BABYLON.PhysicsAggregate(ball2, 
+             BABYLON.PhysicsShapeType.SPHERE, { 
+               mass: 2, 
+               restitution: globals.restitution, 
+               friction: globals.friction }, scene);
+
+
+
+
+        const bumper = BABYLON.MeshBuilder.CreateBox("bumper", {
+                height: 12, width:80, depth: 1}, this.scene);
+        bumper.position = new BABYLON.Vector3(0,0,40)
+
+        new BABYLON.PhysicsAggregate(bumper, BABYLON.PhysicsShapeType.BOX, {
+            mass: 0,
+            restitution: 0,
+            friction: 0 }, this.scene);
+        const bumper2 = bumper.clone("bumper2");
+        const bumper3 = bumper.clone("bumper3");
+        const bumper4 = bumper.clone("bumper4");
+        bumper2.position = new BABYLON.Vector3(0,0,-40);
+        bumper3.position = new BABYLON.Vector3(-40,0,0);
+
+        initRot=-Math.PI/2;
+        bumper3.rotation = new BABYLON.Vector3(0,initRot,0);
+          
+          mesh= bumper3
+
+        bumper4.position = new BABYLON.Vector3(40,0,0);
+        bumper4.rotation = new BABYLON.Vector3(0,Math.PI/2,0);
+
+
+        new BABYLON.PhysicsAggregate(bumper, BABYLON.PhysicsShapeType.BOX, {
+            mass: 0,
+            restitution: 0,
+            friction: 0 }, this.scene);
+        new BABYLON.PhysicsAggregate(bumper2, BABYLON.PhysicsShapeType.BOX, {
+            mass: 0,
+            restitution: 0,
+            friction: 0 }, this.scene);
+        new BABYLON.PhysicsAggregate(bumper3, BABYLON.PhysicsShapeType.BOX, {
+            mass: 0,
+            restitution: 0,
+            friction: 0 }, this.scene);
+        new BABYLON.PhysicsAggregate(bumper4, BABYLON.PhysicsShapeType.BOX, {
+            mass: 0,
+            restitution: 0,
+            friction: 0 }, this.scene);
+
+        aggregate.body.setLinearDamping(globals.damping);
+        camera.lockedTarget = ball1;
+        a.addEventListener("mousedown", () => {
+
+        });
+        a.addEventListener("mouseup", () => {
+
+          let a = 80;
+          let angle = camera.alpha + Math.PI;
+          let impulse = new BABYLON.Vector3(a * Math.cos(angle), 0, a * Math.sin(angle));
+          aggregate.body.applyImpulse(impulse, ball1.position);
+        });
+        return scene;
+      };    
+      createScene().then((scene) => {
+        console.log(mesh.physicsBody)
+        var q = mesh.absoluteRotationQuaternion;
+        console.log(initRot + " rotationQuaterion="+ q)
+        var sinp = Math.sqrt(1 + 2 * (q.w * q.y - q.x * q.z));
+        var cosp = Math.sqrt(1 - 2 * (q.w * q.y - q.x * q.z));
+
+        var radians = 2 * Math.atan2(sinp, cosp) - Math.PI / 2;
+        //console.log(initRot + " radians="+ radians)
+        console.log(initRot + " EulerAngles=" + q.toEulerAngles());
+
+        engine.runRenderLoop(function () {
+
+          if (scene) {
+            scene.render();
+          }
+        });
+       });
+      // Resize
+      window.addEventListener("resize", function () {
+        engine.resize();
+      });
+    </script>
+</body>
+</html>
