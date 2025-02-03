@@ -85,18 +85,24 @@ function Game() {
 
             this.materials.bumper = new BABYLON.StandardMaterial("bumpermat");
             this.materials.bumper.diffuseColor = new BABYLON.Color3(.2, .4, .15);
-            
+
             this.materials.shadow = new BABYLON.StandardMaterial("bumpermat");
             this.materials.shadow.diffuseColor = new BABYLON.Color3(0, .1, 0);
 
-            // root mesh for bumper instances
+            // root meshes for bumper instances
             this.bumperRoot = BABYLON.MeshBuilder.CreateBox("bumper", {
                 height: this.globals.bumperHeight, width:this.globals.tileSize+1, depth: 1}, this.scene);
             this.bumperRoot.material = this.materials.bumper;
             this.bumperRoot.isVisible = false;
+
+            this.bumperHalf = BABYLON.MeshBuilder.CreateBox("bumper", {
+                height: this.globals.bumperHeight, width:this.globals.tileSize/2, depth: 1}, this.scene);
+            this.bumperHalf.material = this.materials.bumper;
+            this.bumperHalf.isVisible = false;
         },
         addBumper: function(x, y, z, options) {
-            const bumper = this.bumperRoot.createInstance("bumper");
+            const bumper = options && options.half ?
+                this.bumperHalf.createInstance("bumper") : this.bumperRoot.createInstance("bumper");
             bumper.position = new BABYLON.Vector3(x, y, z);
             if (options && options.rotation) {
                 bumper.rotation = new BABYLON.Vector3(options.rotation.x, options.rotation.y, options.rotation.z );
@@ -220,18 +226,18 @@ function Game() {
                 break;
                 case "box":
                     mesh = BABYLON.MeshBuilder.CreateBox("barrier", {
-                        height:this.globals.bumperHeight/2, 
-                        width: options.size, 
+                        height:this.globals.bumperHeight/2,
+                        width: options.size,
                         depth: options.size
                     }, this.scene);
                     mesh.position = new BABYLON.Vector3(x, y + this.globals.bumperHeight/4, z);
-                    
+
                     physicsShape = BABYLON.PhysicsShapeType.BOX;
                 break;
                 case "bump":
                     const box = BABYLON.MeshBuilder.CreateBox("box", {
-                        height: this.globals.tileSize*2, 
-                        width: this.globals.tileSize*2, 
+                        height: this.globals.tileSize*2,
+                        width: this.globals.tileSize*2,
                         depth: this.globals.tileSize*2
                     }, this.scene);
                     var y1 = +800;
@@ -250,7 +256,7 @@ function Game() {
                     var mesh = ballCSG.subtract(boxCSG).toMesh("barrier", null, this.scene);
 
                     mesh.position = new BABYLON.Vector3(x, y - options.size*.85, z);
-                    
+
                     physicsShape = BABYLON.PhysicsShapeType.MESH;
                 break;
             }
@@ -318,7 +324,7 @@ function Game() {
             mesh.dispose(); // delete the original mesh
 
             const trigger = BABYLON.MeshBuilder.CreateBox("trigger", {height: 1, width:8, depth:8}, this.scene);
-            trigger.position = new BABYLON.Vector3(hole.position.x, hole.position.y-5, hole.position.z); 
+            trigger.position = new BABYLON.Vector3(hole.position.x, hole.position.y-5, hole.position.z);
             trigger.actionManager = new BABYLON.ActionManager(this.scene);
 
             trigger.actionManager.registerAction(new BABYLON.ExecuteCodeAction({
@@ -370,7 +376,7 @@ function Game() {
             cylinder.dispose();
             box.dispose(); // delete the original mesh
 
-            if (options && options.target) {          
+            if (options && options.target) {
                 let ball = this.ball;
                 const trigger = BABYLON.MeshBuilder.CreateBox("trigger", {height: 8, width:8, depth:2}, this.scene);
                 trigger.rotation.copyFrom(rotation);
@@ -382,16 +388,16 @@ function Game() {
                         trigger: BABYLON.ActionManager.OnIntersectionEnterTrigger,
                         parameter: this.ball.mesh
                     }, () => {
-                        let outlet = options.target.position.add(new BABYLON.Vector3(0, 3, 0));                      
+                        let outlet = options.target.position.add(new BABYLON.Vector3(0, 3, 0));
                         let secs = (BABYLON.Vector3.Distance(trigger.position,outlet)/20).toFixed(0);
 
                         //console.log('secs=' + secs)
 
-                        BABYLON.Animation.CreateAndStartAnimation('cam', ball.mesh, 'position', 
+                        BABYLON.Animation.CreateAndStartAnimation('cam', ball.mesh, 'position',
                             30, // FPS
-                            30*secs, // Total frames 
+                            30*secs, // Total frames
                             trigger.position, outlet, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT);
-                        
+
                         ball.mesh.isVisible = false;
 
                         let q = options.target.absoluteRotationQuaternion
