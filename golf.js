@@ -35,7 +35,7 @@ function Game() {
                 return (Math.abs(v.x) + Math.abs(v.z));
             }
         },
-        bumperRoot: null,
+        strikePosition: new BABYLON.Vector3(),
         impulseTime: 0,
         getImpulseAmount: function() {
             let amount= (new Date() - this.impulseTime) / this.globals.impulseModifier;
@@ -49,6 +49,8 @@ function Game() {
             bumper: null
         },
         shadows:[],
+        bumperRoot: null,
+        bumperHalf: null,
         init: async function() {
             const canvas = document.getElementById("canvas");
 
@@ -69,7 +71,7 @@ function Game() {
 
             // create a camera
             this.camera = new BABYLON.ArcRotateCamera("camera", Math.PI/4, Math.PI/4, 10, new BABYLON.Vector3(0,0,0));
-            this.camera.setPosition(new BABYLON.Vector3(0, 140, -100));
+            this.camera.setPosition(new BABYLON.Vector3(0, 240, -160));
             this.camera.attachControl(canvas, true);
 
             // enable Havok
@@ -409,8 +411,8 @@ function Game() {
                             ball.mesh.isVisible = true;
                             ball.stop();
                             ball.mesh.setAbsolutePosition(outlet);
-                            let amount = (Math.random() * 30) + 50;
-                            //console.log('amount='+ amount);
+                            let amount = (Math.random() * 30) + 60;
+                            console.log('amount='+ amount);
 
                             // not sure why the -sin is needed here
                             let impulse = new BABYLON.Vector3(amount * Math.cos(angle), 0, amount * -Math.sin(angle));
@@ -449,11 +451,11 @@ function Game() {
                 let end = start.add(len);
 
                 const options = {
-                    useVertexAlpha: true,
-                    points: [start, end],
-                    updatable: true, // may not need this because we can't add points
+                    useVertexAlpha: true, // for transparency
+                    points: [start, end]
                 };
                 let line = BABYLON.MeshBuilder.CreateLines("line", options, this.scene);
+                line.forceRenderingWhenOccluded = true;
                 line.alpha = 1-(i/aimLineSegments);
                 this.aimLine.push(line);
             }
@@ -477,6 +479,7 @@ function Game() {
             if (this.ball.stopped && this.impulseTime != 0) {
                 this.renderAimLine = false;
                 this.disposeAimLine();
+                this.strikePosition.copyFrom(this.ball.mesh.position);
                 clearInterval(this.aimLineInterval);
 
                 let a = this.getImpulseAmount()
@@ -496,6 +499,11 @@ function Game() {
                     }
                     else if (game.ball.stopped && game.ball.velocity >= 1) {
                         game.ball.moved();
+                    }
+                    if (game.ball.mesh.position.y < -20) {
+                        // out of bounds
+                        game.ball.mesh.setAbsolutePosition(this.strikePosition);
+                        game.ball.stop()
                     }
                 }
             ));
