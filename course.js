@@ -1,11 +1,24 @@
 function Course() {
     return {
-        current: 0,
+        current: 4,
         get currentHole() {
             return this.holes[this.current-1]
         },
         holes: [
- 
+            /*
+        {
+            name:'Test',
+            par:2,
+            strokes:0,
+            complete:false,
+            build:function(golf) {
+                golf.addBall(0,2,0);
+                golf.addGround(0,0,0,{bumpers:"1111", mesh:"quarter"});
+                golf.addGround(0,0,100,{bumpers:"1111", mesh:"short"});
+                golf.addGround(100,0,100,{bumpers:"1111", mesh:"full"});
+                golf.addGround(100,0,0,{bumpers:"1111", mesh:"narrow"});
+            }
+        },*/
         {
             name:'Bird\'s Eye',
             par:2,
@@ -59,7 +72,7 @@ function Course() {
             complete:false,
             build:function(golf) {
                 golf.addBall(30,2,95);
-                golf.addGround(30,0,100,{bumpers:"0110"});
+                golf.addGround(45,0,100,{bumpers:"0110",mesh:"narrow"});
                 golf.addCorner(0,0,100,{rotation:-Math.PI/2});
                 golf.addBarrier(38,0,124,{shape:"box",size:17});
                 golf.addBarrier(52,0,124,{shape:"box",size:17});
@@ -77,7 +90,7 @@ function Course() {
             complete:false,
             build:function(golf) {
                 golf.addBall(50,2,80);
-                golf.addGround(30,0,100,{bumpers:"0010"});
+                golf.addGround(45,0,100,{bumpers:"0010", mesh:"narrow"});
                 golf.addCorner(0,0,100,{rotation:-Math.PI/2});                
                 golf.addCorner(90,0,100,{rotation:Math.PI});
 
@@ -100,16 +113,11 @@ function Course() {
 
                 golf.addGround(0,-6,158,{bumpers:"0101", rotation:{x:.2,y:0,z:0}});
                 golf.addGround(90,6,158,{bumpers:"0101", rotation:{x:-.2,y:0,z:0}});
-
-                
                 golf.addBumper(60,0,165,{rotation:{x:0,y:Math.PI/2,z:0}});
-                
-                ////
-                golf.addBumper(45,-12,246,{half:true});
                 
                 var m = golf.addCorner(0,-12,216);
 
-                golf.addGround(45,-12,216,{bumpers:"0000"});
+                golf.addGround(60,-12,216,{bumpers:"1000"});
                 golf.addGround(88,-4.5,216,{bumpers:"1010", rotation:{x:0,y:0,z:.25}});
                 golf.addHole(m);
             }
@@ -144,7 +152,6 @@ function Course() {
                 golf.addCorner(0,0,100,{rotation:-Math.PI/2});
                 golf.addGround(0,0,131,{rotation:{x:-.24,y:0,z:0}});
                 golf.addGround(0,0,219,{rotation:{x:+.24,y:0,z:0}});
-
 
                 golf.addBumper(0,0,190,);
                 golf.addBumper(0,0,160,);

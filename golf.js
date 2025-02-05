@@ -71,7 +71,7 @@ function Game() {
 
             // create a camera
             this.camera = new BABYLON.ArcRotateCamera("camera", Math.PI/4, Math.PI/4, 10, new BABYLON.Vector3(0,0,0));
-            this.camera.setPosition(new BABYLON.Vector3(0, 240, -160));
+            this.camera.setPosition(new BABYLON.Vector3(0, 200, -160));
             this.camera.attachControl(canvas, true);
 
             // enable Havok
@@ -116,9 +116,17 @@ function Game() {
             return bumper;
         },
         addGround: function(x, y, z, options) {
-            const ground = BABYLON.MeshBuilder.CreateGround("ground", {
-                width: this.globals.tileSize,
-                height: this.globals.tileSize }, this.scene);
+            var size = { width: this.globals.tileSize, height: this.globals.tileSize }
+            if (!options) {
+                options = {mesh: "full"};
+            }
+            if (options.mesh == "narrow" || options.mesh == "quarter") {
+                size.width = this.globals.tileSize/2;
+            }
+            if (options.mesh == "short" || options.mesh == "quarter") {
+                size.height = this.globals.tileSize/2;
+            }
+            const ground = BABYLON.MeshBuilder.CreateGround("ground", size, this.scene);
             ground.position = new BABYLON.Vector3(x, y, z);
             ground.material = this.materials.green;
             ground.receiveShadows = true;
@@ -139,18 +147,41 @@ function Game() {
                       }
                       if (options.bumpers[i]=="1") {
                           switch(i) {
-                              case 0: this.addBumper(x, y, z + this.globals.tileSize/2, {rotation:r});
-                                  break;
+                              case 0:
+                                if (options.mesh == "narrow" || options.mesh == "quarter") {                                
+                                    this.addBumper(x, y, z + size.height/2, {rotation:r, half: true});
+                                }
+                                else {
+                                    this.addBumper(x, y, z + size.height/2, {rotation:r});
+                                }
+                                break;
                               case 1:
-                                  r = new BABYLON.Vector3(r.z, r.y, r.x).add(new  BABYLON.Vector3(0, Math.PI/2, 0));
-                                  this.addBumper(x + this.globals.tileSize/2, y, z, {rotation:r});
-                                  break;
-                              case 2: this.addBumper(x, y, z - this.globals.tileSize/2, {rotation:r});
-                                  break;
+                                r = new BABYLON.Vector3(r.z, r.y, r.x).add(new  BABYLON.Vector3(0, Math.PI/2, 0));
+
+                                if (options.mesh == "short" || options.mesh == "quarter") { 
+                                    this.addBumper(x + size.width/2, y, z, {rotation:r, half: true});
+                                }
+                                else {
+                                    this.addBumper(x + size.width/2, y, z, {rotation:r});
+                                }
+                                break;
+                              case 2: 
+                                if (options.mesh == "narrow" || options.mesh == "quarter") {      
+                                    this.addBumper(x, y, z - size.height/2, {rotation:r, half: true});
+                                }
+                                else {
+                                    this.addBumper(x, y, z - size.height/2, {rotation:r});
+                                }
+                                break;
                               case 3:
-                                  r = new BABYLON.Vector3(r.z, r.y, r.x).add(new  BABYLON.Vector3(0, Math.PI/2, 0));
-                                  this.addBumper(x - this.globals.tileSize/2, y, z, {rotation:r});
-                                  break;
+                                r = new BABYLON.Vector3(r.z, r.y, r.x).add(new  BABYLON.Vector3(0, Math.PI/2, 0));
+                                if (options.mesh == "short" || options.mesh == "quarter") { 
+                                    this.addBumper(x - size.width/2, y, z, {rotation:r, half: true});
+                                }
+                                else {
+                                    this.addBumper(x - size.width/2, y, z, {rotation:r});
+                                }
+                                break;
                           }
                       }
                   }
