@@ -24,6 +24,8 @@
       var shotButton = document.getElementById('shotButton');
       var scoreCard = document.getElementById('scoreCard');
       var scoreDisplay = document.getElementById('scoreDisplay');
+      var golf = new Game();
+      var course = new Course();
 
       function updateScoreCard(course) {
         var rows = '<tr><th>Hole</th><th style="width:60px;">Par</th><th style="width:60px;">Player</th></tr>';
@@ -71,8 +73,6 @@
           });
       }
 
-      var golf = new Game();
-      var course = new Course();
 
       loadNext();
       updateScoreCard(course);

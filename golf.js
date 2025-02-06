@@ -73,12 +73,25 @@ function Game() {
             this.camera = new BABYLON.ArcRotateCamera("camera", Math.PI/4, Math.PI/4, 10, new BABYLON.Vector3(0,0,0));
             this.camera.setPosition(new BABYLON.Vector3(0, 200, -160));
             this.camera.attachControl(canvas, true);
+            this.camera.minZ = -200;
 
             // enable Havok
             const havok = await HavokPhysics();
             this.scene.enablePhysics(new BABYLON.Vector3(0, this.globals.gravity, 0), new BABYLON.HavokPlugin(true, havok));
 
             // create materials
+            this.materials.sky = new BABYLON.StandardMaterial("skymat", this.scene);
+            this.materials.sky.backFaceCulling = false;
+            this.materials.sky.disableLighting = true;
+            this.materials.sky.reflectionTexture = new BABYLON.CubeTexture("/assets/sky/skybox", this.scene);
+            this.materials.sky.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
+            
+            const skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 1000.0 }, this.scene);
+            skybox.material = this.materials.sky;
+            skybox.infiniteDistance = true;
+
+
+
             this.materials.green = new BABYLON.StandardMaterial("greenmat");
             this.materials.green.diffuseColor = new BABYLON.Color3(.6, .8, .6);
             this.materials.green.diffuseTexture = new BABYLON.Texture("/assets/green.jpg");
