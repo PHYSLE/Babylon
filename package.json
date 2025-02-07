@@ -1,5 +1,5 @@
 {
-  "name": "babylon",
+  "name": "Microput",
   "version": "1.0.0",
   "main": "index.html",
   "author": "PHYSLE",
@@ -7,7 +7,6 @@
   "description": "",
   "dependencies": {
     "@babylonjs/havok": "^1.3.10",
-    "@babylonjs/materials": "^7.47.2",
     "babylonjs": "^7.37.0"
   }
 }

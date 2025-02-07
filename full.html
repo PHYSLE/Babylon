@@ -6,7 +6,7 @@
     <script src="/node_modules/@babylonjs/havok/lib/umd/HavokPhysics_umd.js"></script>
     <script src="/node_modules/babylonjs/babylon.js"></script>
     <script src="/golf.js"></script>
-    <script src="/course.js"></script>
+    <script src="/fullcourse.js"></script>
     <title>PHYSLE Microput</title>
   </head>
   <body>
@@ -43,16 +43,37 @@
 
       function loadNext() {
         shotButton.innerHTML = '';
-          course.current++;
+        course.current++;
+        scoreDisplay.firstChild.innerHTML = 'Stroke 0';
+        scoreCard.style.display = 'none';
+        if (golf.ball.mesh) {
+          golf.ball.mesh.dispose();
+          golf.ball.body.dispose();
+          golf.events = new EventTarget();
+        }
+        course.currentHole.start(golf);
+        golf.addEventListener("stop", function() {
+          shotButton.style.borderStyle = 'solid'
+        });
+
+        golf.addEventListener("hole", function() {
+          golf.paused = true;
+          course.currentHole.complete = true;
+          scoreCard.style.display = 'block'
+          shotButton.innerHTML = '<br />Next';
+        });
+        golf.impulseTime = 0;
+        golf.paused = false;
           
           //console.log('current course  = ' + course.current)
+          /*
           if (golf.scene) {
             golf.scene.dispose();
           }
           if (golf.engine) {
             golf.engine.dispose();
           }
-          scoreDisplay.firstChild.innerHTML = 'Stroke 0';
+          
           golf = new Game();
 
           golf.init().then(() => {
@@ -67,15 +88,24 @@
               scoreCard.style.display = 'block'
               shotButton.innerHTML = '<br />Next';
             });
-
+  
             golf.run();
-            scoreCard.style.display = 'none';
-          });
+           
+          }); */
       }
 
 
-      loadNext();
-      updateScoreCard(course);
+
+
+      golf.init().then(() => {
+        for(var i=0; i<course.holes.length; i++) {
+          course.holes[i].build(golf);
+        }
+        loadNext();
+        updateScoreCard(course);
+
+        golf.run();
+      });
 
       golf.addEventListener("stop", function() {
         shotButton.style.borderStyle = 'solid'

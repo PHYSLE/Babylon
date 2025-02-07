@@ -1,14 +1,22 @@
 function Game() {
     const game = {
         globals: {
-            restitution: .5,
-            friction: .75,
-            gravity: -9.8,
+            /*
             damping: .34,
             impulseModifier: 10,
             maxImpulse: 120,
-            tileSize: 60,
-            bumperHeight: 14
+            aimLineModifier: 1.2
+            */
+            restitution: .5,        // determine how bouncy the ball is
+            damping: .64,           // reduce velocity of the ball 
+            friction: .75,          // the friction of the ball
+            gravity: -9.8,          // gravity of scene         
+            impulseModifier: 5,     // velocity of impulse per ms of swing
+            maxImpulse: 240,        // max velocity of impulse
+            tileSize: 60,           // size of grid tile
+            bumperHeight: 14,       // height of bumpers
+            aimLineSegments: 10,    // number of line segments in aim line
+            aimLineModifier: 1.333  // divisor of line per swing impulse
         },
         paused: false,
         engine: null,
@@ -51,6 +59,8 @@ function Game() {
         shadows:[],
         bumperRoot: null,
         bumperHalf: null,
+        aimLine: [],
+        renderAimLine: false,
         init: async function() {
             const canvas = document.getElementById("canvas");
 
@@ -73,7 +83,7 @@ function Game() {
             this.camera = new BABYLON.ArcRotateCamera("camera", Math.PI/4, Math.PI/4, 10, new BABYLON.Vector3(0,0,0));
             this.camera.setPosition(new BABYLON.Vector3(0, 200, -160));
             this.camera.attachControl(canvas, true);
-            this.camera.minZ = -200;
+
 
             // enable Havok
             const havok = await HavokPhysics();
@@ -114,6 +124,125 @@ function Game() {
                 height: this.globals.bumperHeight, width:this.globals.tileSize/2, depth: 1}, this.scene);
             this.bumperHalf.material = this.materials.bumper;
             this.bumperHalf.isVisible = false;
+        },
+        disposeAimLine: function() {
+            //console.log('disposing ' + this.aimLine.length + ' segments')
+            if (this.aimLine.length > 0) {
+                for(let i=0; i<this.aimLine.length; i++) {
+                    this.aimLine[i].dispose();
+                }
+                this.aimLine = [];
+            }
+        },
+        refreshAimLine: function() {
+            let segs = this.globals.aimLineSegments;
+            let lineLen = this.getImpulseAmount() / this.globals.aimLineModifier;
+            let a = lineLen/segs; //(lineLen * (1 + this.globals.damping)) / segs;
+            let angle = this.camera.alpha + Math.PI;
+            let segLen = new BABYLON.Vector3(a * Math.cos(angle), 0, a * Math.sin(angle));
+            let offset = BABYLON.Vector3.Zero();
+            let distance = this.ball.diameter + 1; // start aim line this far from ball
+            let padding = new BABYLON.Vector3(distance * Math.cos(angle), 0, distance * Math.sin(angle));
+
+            for(let i=0; i<segs; i++) {
+                offset = segLen.multiply(new BABYLON.Vector3(i, 0, i));
+                let start = this.ball.mesh.position.add(offset).add(padding);
+                let end = start.add(segLen);
+
+                const options = {
+                    useVertexAlpha: true, // for transparency
+                    points: [start, end]
+                };
+                let line = BABYLON.MeshBuilder.CreateLines("line", options, this.scene);
+                line.forceRenderingWhenOccluded = true;
+                line.alpha = 1-(i/segs);
+                this.aimLine.push(line);
+            }
+            // dispose after create to avoid blinking
+            if (this.aimLine.length > segs * 2) {
+                for(let i=0; i<segs; i++) {
+                    this.aimLine[0].dispose();
+                    this.aimLine.shift();
+                }
+            }
+        },
+
+        swing: function() {
+            if (this.ball.stopped) {
+                this.impulseTime = new Date();
+                this.renderAimLine = true;
+                // this.predictPath(); WiP prediction.js
+            }
+        },
+        strike: function() {
+            if (this.ball.stopped && this.impulseTime != 0) {
+                this.renderAimLine = false;
+                this.disposeAimLine();
+                this.strikePosition.copyFrom(this.ball.mesh.position);
+                clearInterval(this.aimLineInterval);
+
+                let a = this.getImpulseAmount()
+                let angle = this.camera.alpha + Math.PI;
+                let impulse = new BABYLON.Vector3(a * Math.cos(angle), 0, a * Math.sin(angle));
+                this.ball.body.applyImpulse(impulse, this.ball.mesh.position);
+            }
+        },
+        run: function() {
+            game.scene.actionManager = new BABYLON.ActionManager(game.scene);
+
+            game.scene.actionManager.registerAction(new BABYLON.ExecuteCodeAction({
+                trigger: BABYLON.ActionManager.OnEveryFrameTrigger },
+                () => { // set a min threshold for velocity
+                    if (!game.ball.stopped && game.ball.velocity < 1) {
+                        game.ball.stop();
+                    }
+                    else if (game.ball.stopped && game.ball.velocity >= 1) {
+                        game.ball.moved();
+                    }
+                    if (game.ball.mesh.position.y < -20) {
+                        // out of bounds
+                        game.ball.mesh.setAbsolutePosition(this.strikePosition);
+                        game.ball.stop()
+                    }
+                }
+            ));
+
+            game.engine.runRenderLoop(function () {
+                var step = 0;
+                if (game.scene && !game.paused) {
+                    game.scene.render();
+                    if (game.renderAimLine) {
+                        if (step % 200 == 0) {
+                            game.refreshAimLine();
+                        }
+                    }
+                    step++;
+                }
+            });
+        },
+        addEventListener:function(type, callback, options = {}) {
+            this.ball.events.addEventListener(type, callback, options);
+        },
+        addBall: function(x, y, z) {
+            const ball = BABYLON.MeshBuilder.CreateSphere("ball", {
+                diameter: this.ball.diameter,
+                segments: 16 }, this.scene);
+            ball.position = new BABYLON.Vector3(x, y, z);
+            this.camera.lockedTarget = ball;
+            this.ball.mesh = ball;
+
+            const aggregate = new BABYLON.PhysicsAggregate(ball, BABYLON.PhysicsShapeType.SPHERE, {
+                mass: 2,
+                restitution: this.globals.restitution,
+                friction: this.globals.friction }, this.scene);
+            aggregate.body.setLinearDamping(game.globals.damping);
+            aggregate.body.disablePreStep = false; // disablePreStep allows moving the ball manually
+            this.ball.body = aggregate.body;
+            for(let i=0; i<this.shadows.length; i++) {
+                this.shadows[i].getShadowMap().renderList.push(ball);
+            }
+
+            return ball;
         },
         addBumper: function(x, y, z, options) {
             const bumper = options && options.half ?
@@ -319,27 +448,6 @@ function Game() {
             return mesh;
 
         },
-        addBall: function(x, y, z) {
-            const ball = BABYLON.MeshBuilder.CreateSphere("ball", {
-                diameter: this.ball.diameter,
-                segments: 16 }, this.scene);
-            ball.position = new BABYLON.Vector3(x, y, z);
-            this.camera.lockedTarget = ball;
-            this.ball.mesh = ball;
-
-            const aggregate = new BABYLON.PhysicsAggregate(ball, BABYLON.PhysicsShapeType.SPHERE, {
-                mass: 2,
-                restitution: this.globals.restitution,
-                friction: this.globals.friction }, this.scene);
-            aggregate.body.setLinearDamping(game.globals.damping);
-            aggregate.body.disablePreStep = false; // disablePreStep allows moving the ball manually
-            this.ball.body = aggregate.body;
-            for(let i=0; i<this.shadows.length; i++) {
-                this.shadows[i].getShadowMap().renderList.push(ball);
-            }
-
-            return ball;
-        },
         addHole: function(mesh) {
             const cylinder = BABYLON.MeshBuilder.CreateCylinder("tube", {
                 height:10,
@@ -455,7 +563,7 @@ function Game() {
                             ball.mesh.isVisible = true;
                             ball.stop();
                             ball.mesh.setAbsolutePosition(outlet);
-                            let amount = (Math.random() * 30) + 60;
+                            let amount = (Math.random() * 40) + 120;
                             console.log('amount='+ amount);
 
                             // not sure why the -sin is needed here
@@ -467,107 +575,9 @@ function Game() {
             }
 
             return tunnel;
-        },
+        }
 
-        aimLine: [],
-        renderAimLine: false,
-        disposeAimLine: function() {
-            //console.log('disposing ' + this.aimLine.length + ' segments')
-            if (this.aimLine.length > 0) {
-                for(let i=0; i<this.aimLine.length; i++) {
-                    this.aimLine[i].dispose();
-                }
-                this.aimLine = [];
-            }
-        },
-        refreshAimLine: function() {
-            let aimLineSegments = 10;
-            let a = (this.getImpulseAmount() * (1 + this.globals.damping)) / aimLineSegments;
-            let angle = this.camera.alpha + Math.PI;
-            let len = new BABYLON.Vector3(a * Math.cos(angle), 0, a * Math.sin(angle));
-            let offset = BABYLON.Vector3.Zero();
-            let distance = this.ball.diameter + 1; // start aim line this far from ball
-            let padding = new BABYLON.Vector3(distance * Math.cos(angle), 0, distance * Math.sin(angle));
-
-            for(let i=0; i<aimLineSegments; i++) {
-                offset = len.multiply(new BABYLON.Vector3(i, 0, i));
-                let start = this.ball.mesh.position.add(offset).add(padding);
-                let end = start.add(len);
-
-                const options = {
-                    useVertexAlpha: true, // for transparency
-                    points: [start, end]
-                };
-                let line = BABYLON.MeshBuilder.CreateLines("line", options, this.scene);
-                line.forceRenderingWhenOccluded = true;
-                line.alpha = 1-(i/aimLineSegments);
-                this.aimLine.push(line);
-            }
-            // dispose after create to avoid blinking
-            if (this.aimLine.length > aimLineSegments * 2) {
-                for(let i=0; i<aimLineSegments; i++) {
-                    this.aimLine[0].dispose();
-                    this.aimLine.shift();
-                }
-            }
-        },
-
-        swing: function() {
-            if (this.ball.stopped) {
-                this.impulseTime = new Date();
-                this.renderAimLine = true;
-                // this.predictPath(); WiP prediction.js
-            }
-        },
-        strike: function() {
-            if (this.ball.stopped && this.impulseTime != 0) {
-                this.renderAimLine = false;
-                this.disposeAimLine();
-                this.strikePosition.copyFrom(this.ball.mesh.position);
-                clearInterval(this.aimLineInterval);
-
-                let a = this.getImpulseAmount()
-                let angle = this.camera.alpha + Math.PI;
-                let impulse = new BABYLON.Vector3(a * Math.cos(angle), 0, a * Math.sin(angle));
-                this.ball.body.applyImpulse(impulse, this.ball.mesh.position);
-            }
-        },
-        run: function() {
-            game.scene.actionManager = new BABYLON.ActionManager(game.scene);
-
-            game.scene.actionManager.registerAction(new BABYLON.ExecuteCodeAction({
-                trigger: BABYLON.ActionManager.OnEveryFrameTrigger },
-                () => { // set a min threshold for velocity
-                    if (!game.ball.stopped && game.ball.velocity < 1) {
-                        game.ball.stop();
-                    }
-                    else if (game.ball.stopped && game.ball.velocity >= 1) {
-                        game.ball.moved();
-                    }
-                    if (game.ball.mesh.position.y < -20) {
-                        // out of bounds
-                        game.ball.mesh.setAbsolutePosition(this.strikePosition);
-                        game.ball.stop()
-                    }
-                }
-            ));
-
-            game.engine.runRenderLoop(function () {
-                var step = 0;
-                if (game.scene && !game.paused) {
-                    game.scene.render();
-                    if (game.renderAimLine) {
-                        if (step % 200 == 0) {
-                            game.refreshAimLine();
-                        }
-                    }
-                    step++;
-                }
-            });
-        },
-        addEventListener:function(type, callback, options = {}) {
-            this.ball.events.addEventListener(type, callback, options);
-        },
+        
     }
 
     return game;

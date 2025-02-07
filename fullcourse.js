@@ -5,48 +5,87 @@ function Course() {
             return this.holes[this.current-1]
         },
         holes: [
-/*
         {
             name:'Test',
-            par:2,
+            par:1,
             strokes:0,
+            offset:{x:0,y:0,z:0},
             complete:false,
+            start:function(golf) {
+                golf.addBall(0+this.offset.x,2+this.offset.y,100+this.offset.z);
+            },
             build:function(golf) {
-                golf.addBall(0,2,0);
-               
-                //golf.addGround(0,0,0,{bumpers:"1111", mesh:"quarter"});
-                //golf.addGround(0,0,100,{bumpers:"1111", mesh:"short"});
-                //golf.addGround(100,0,100,{bumpers:"1111", mesh:"full"});
-                //golf.addGround(100,0,0,{bumpers:"1111", mesh:"narrow"});
-               
-               for(var x=0; x<240; x+=60)
-                for(var z=0; z<240; z+=60)
-                    golf.addGround(x,0,z);
-            }
-        },
-  */     
-        {
-            name:'Bird\'s Eye',
-            par:2,
-            strokes:0,
-            complete:false,
-            build:function(golf) {
-                golf.addBall(0,2,100);
-                golf.addGround(0,0,100,{bumpers:"0011"});
-                golf.addCorner(0,0,160);
-                golf.addCorner(60,0,100,{rotation:Math.PI});
-                golf.addBarrier(30,0,130,{shape:"circle",size:20});
-                var m = golf.addGround(60,0,160,{bumpers:"1100"});
+                golf.addCorner(0+this.offset.x,0+this.offset.y,100+this.offset.z,{rotation:-Math.PI/2});
+                golf.addCorner(0+this.offset.x,0+this.offset.y,160+this.offset.z);
+                golf.addCorner(60+this.offset.x,0+this.offset.y,100+this.offset.z,{rotation:Math.PI});
+                var m = golf.addCorner(60+this.offset.x,0+this.offset.y,160+this.offset.z,{rotation:Math.PI/2});
                 golf.addHole(m);
             }
         },
         {
+            name:'Bird\'s Eye',
+            par:2,
+            strokes:0,
+            offset:{x:0,y:0,z:150},
+            complete:false,
+            start:function(golf) {
+                golf.addBall(0+this.offset.x,2+this.offset.y,100+this.offset.z);
+            },
+            build:function(golf) {
+
+                golf.addGround(0+this.offset.x,0+this.offset.y,100+this.offset.z,{bumpers:"0011"});
+                golf.addCorner(0+this.offset.x,0+this.offset.y,160+this.offset.z);
+                golf.addCorner(60+this.offset.x,0+this.offset.y,100+this.offset.z,{rotation:Math.PI});
+                golf.addBarrier(30+this.offset.x,0+this.offset.y,130+this.offset.z,{shape:"circle",size:20});
+                var m = golf.addGround(60+this.offset.x+this.offset.y,0,160+this.offset.z,{bumpers:"1100"});
+                golf.addHole(m);
+            }
+        },
+        {
+            name:'Horse Shoe',
+            par:3,
+            strokes:0,
+            offset:{x:150,y:0,z:150},
+            complete:false,
+            start:function(golf) {
+                golf.addBall(0+this.offset.x,2+this.offset.y,100+this.offset.z);
+            },
+            build:function(golf) {
+                golf.addGround(0+this.offset.x,0+this.offset.y,100+this.offset.z,{bumpers:"0011"});
+                golf.addCorner(0+this.offset.x,0+this.offset.y,160+this.offset.z);
+                var m = golf.addGround(60+this.offset.x,0+this.offset.y,100+this.offset.z,{bumpers:"0111"});
+                golf.addCorner(60+this.offset.x,0+this.offset.y,160+this.offset.z,{rotation:Math.PI/2});
+                golf.addHole(m);
+            }
+        },
+        {
+            name:'Bullseye',
+            par:2,
+            strokes:0,
+            offset:{x:150,y:0,z:0},
+            complete:false,
+            start:function(golf) {
+                golf.addBall(0+this.offset.x,2+this.offset.y,100+this.offset.z);
+            },
+            build:function(golf) {
+                golf.addCorner(0+this.offset.x,0+this.offset.y,100+this.offset.z,{rotation:-Math.PI/2});
+                golf.addCorner(0+this.offset.x,0+this.offset.y,160+this.offset.z);
+                golf.addCorner(60+this.offset.x,0+this.offset.y,100+this.offset.z,{rotation:Math.PI});
+                golf.addBarrier(30+this.offset.x,0+this.offset.y,130+this.offset.z,{shape:"bump",size:30});
+                var m = golf.addCorner(60+this.offset.x,0+this.offset.y,160+this.offset.z,{rotation:Math.PI/2});
+                golf.addHole(m);
+            }
+        }
+        /*
+        ,
+        {
             name:'Dog Leg',
             par:2,
             strokes:0,
+            offset:{x:0,y:0,z:0},
             complete:false,
             build:function(golf) {
-                golf.addBall(0,2,110);
+                golf.addBall(0,2,100);
                 golf.addGround(0,0,100,{bumpers:"0111"});
                 golf.addCorner(0,0,160);
                 golf.addGround(59,-6,160,{bumpers:"1010", rotation:{x:0,y:0,z:-.2}});
@@ -58,6 +97,7 @@ function Course() {
             name:'Rabbit Hole',
             par:3,
             strokes:0,
+            offset:{x:0,y:0,z:0},
             complete:false,
             build:function(golf) {
                 golf.addBall(0,2,80);
@@ -75,6 +115,7 @@ function Course() {
             name:'Leap Frog',
             par:2,
             strokes:0,
+            offset:{x:0,y:0,z:0},
             complete:false,
             build:function(golf) {
                 golf.addBall(30,2,95);
@@ -93,6 +134,7 @@ function Course() {
             name:'Cat Nap',
             par:2,
             strokes:0,
+            offset:{x:0,y:0,z:0},
             complete:false,
             build:function(golf) {
                 golf.addBall(50,2,80);
@@ -129,23 +171,10 @@ function Course() {
             }
         },
         {
-            name:'Horse Shoe',
-            par:3,
-            strokes:0,
-            complete:false,
-            build:function(golf) {
-                golf.addBall(0,2,100);
-                golf.addGround(0,0,100,{bumpers:"0011"});
-                golf.addCorner(0,0,160);
-                var m = golf.addGround(60,0,100,{bumpers:"0111"});
-                golf.addCorner(60,0,160,{rotation:Math.PI/2});
-                golf.addHole(m);
-            }
-        },
-        {
             name:'Snake Bite',
             par:4,
             strokes:0,
+            offset:{x:0,y:0,z:0},
             complete:false,
             build:function(golf) {
                 golf.addBall(0,2,100);
@@ -175,6 +204,7 @@ function Course() {
             name:'Ant Hill',
             par:3,
             strokes:0,
+            offset:{x:0,y:0,z:0},
             complete:false,
             build:function(golf) {
                 golf.addBall(0,22,80);
@@ -212,22 +242,8 @@ function Course() {
 
                 golf.addGround(60,0,220,{bumpers:"1010"});
             }
-        },
-        {
-            name:'Bullseye',
-            par:2,
-            strokes:0,
-            complete:false,
-            build:function(golf) {
-                golf.addBall(0,2,100);
-                golf.addCorner(0,0,100,{rotation:-Math.PI/2});
-                golf.addCorner(0,0,160);
-                golf.addCorner(60,0,100,{rotation:Math.PI});
-                golf.addBarrier(30,0,130,{shape:"bump",size:30});
-                var m = golf.addCorner(60,0,160,{rotation:Math.PI/2});
-                golf.addHole(m);
-            }
         }
+            */
       ]
     }
 }
