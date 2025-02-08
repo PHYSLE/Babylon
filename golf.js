@@ -7,16 +7,17 @@ function Game() {
             maxImpulse: 120,
             aimLineModifier: 1.2
             */
-            restitution: .5,        // determine how bouncy the ball is
-            damping: .64,           // reduce velocity of the ball 
+            restitution: .55,       // determine how bouncy the ball is
+            damping: .64,           // reduce velocity of the ball
             friction: .75,          // the friction of the ball
-            gravity: -9.8,          // gravity of scene         
+            gravity: -9.8,          // gravity of scene
             impulseModifier: 5,     // velocity of impulse per ms of swing
-            maxImpulse: 240,        // max velocity of impulse
+            maxImpulse: 230,        // max velocity of impulse
             tileSize: 60,           // size of grid tile
-            bumperHeight: 14,       // height of bumpers
+            bumperHeight: 15,       // height of bumpers
             aimLineSegments: 10,    // number of line segments in aim line
-            aimLineModifier: 1.333  // divisor of line per swing impulse
+            aimLineModifier: 1.3,   // divisor of line per swing impulse
+            exitVelocity: 120       // default velocity of ball leaving tunnel
         },
         paused: false,
         engine: null,
@@ -95,7 +96,7 @@ function Game() {
             this.materials.sky.disableLighting = true;
             this.materials.sky.reflectionTexture = new BABYLON.CubeTexture("/assets/sky/skybox", this.scene);
             this.materials.sky.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
-            
+
             const skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 1000.0 }, this.scene);
             skybox.material = this.materials.sky;
             skybox.infiniteDistance = true;
@@ -290,7 +291,7 @@ function Game() {
                       if (options.bumpers[i]=="1") {
                           switch(i) {
                               case 0:
-                                if (options.mesh == "narrow" || options.mesh == "quarter") {                                
+                                if (options.mesh == "narrow" || options.mesh == "quarter") {
                                     this.addBumper(x, y, z + size.height/2, {rotation:r, half: true});
                                 }
                                 else {
@@ -300,15 +301,15 @@ function Game() {
                               case 1:
                                 r = new BABYLON.Vector3(r.z, r.y, r.x).add(new  BABYLON.Vector3(0, Math.PI/2, 0));
 
-                                if (options.mesh == "short" || options.mesh == "quarter") { 
+                                if (options.mesh == "short" || options.mesh == "quarter") {
                                     this.addBumper(x + size.width/2, y, z, {rotation:r, half: true});
                                 }
                                 else {
                                     this.addBumper(x + size.width/2, y, z, {rotation:r});
                                 }
                                 break;
-                              case 2: 
-                                if (options.mesh == "narrow" || options.mesh == "quarter") {      
+                              case 2:
+                                if (options.mesh == "narrow" || options.mesh == "quarter") {
                                     this.addBumper(x, y, z - size.height/2, {rotation:r, half: true});
                                 }
                                 else {
@@ -317,7 +318,7 @@ function Game() {
                                 break;
                               case 3:
                                 r = new BABYLON.Vector3(r.z, r.y, r.x).add(new  BABYLON.Vector3(0, Math.PI/2, 0));
-                                if (options.mesh == "short" || options.mesh == "quarter") { 
+                                if (options.mesh == "short" || options.mesh == "quarter") {
                                     this.addBumper(x - size.width/2, y, z, {rotation:r, half: true});
                                 }
                                 else {
@@ -502,8 +503,8 @@ function Game() {
             box.position = new BABYLON.Vector3(x, y, z);
             const cylinder = BABYLON.MeshBuilder.CreateCylinder("tube", {
                 height:10,
-                diameterTop:7,
-                diameterBottom:7,
+                diameterTop:8,
+                diameterBottom:8,
                 tessellation:16,
                 subdivisions:1
             }, this.scene);
@@ -557,13 +558,14 @@ function Game() {
                         let q = options.target.absoluteRotationQuaternion
                         let angles = q.toEulerAngles();
                         let angle = (angles.y + Math.PI/2).toFixed(3);
+                        let amount = (options.exitVelocity ? options.exitVelocity : this.globals.exitVelocity)+(Math.random() * 20);
 
                         setTimeout(() => {
                             //console.log('tunnel impulse angle=' + angle)
                             ball.mesh.isVisible = true;
                             ball.stop();
                             ball.mesh.setAbsolutePosition(outlet);
-                            let amount = (Math.random() * 40) + 120;
+
                             console.log('amount='+ amount);
 
                             // not sure why the -sin is needed here
@@ -577,7 +579,7 @@ function Game() {
             return tunnel;
         }
 
-        
+
     }
 
     return game;
