@@ -110,8 +110,7 @@ function Game() {
             //this.materials.green.diffuseColor = new BABYLON.Color3(.6, .8, .6);
 
             this.materials.bumper = new BABYLON.StandardMaterial("bumpermat");
-            this.materials.bumper.diffuseColor = new BABYLON.Color3(.1, .32, .05);
-            //this.materials.bumper.diffuseColor = new BABYLON.Color3(.2, .4, .15);
+            this.materials.bumper.diffuseColor = new BABYLON.Color3(.15, .38, .1);
 
             this.materials.shadow = new BABYLON.StandardMaterial("bumpermat");
             this.materials.shadow.diffuseColor = new BABYLON.Color3(0, .1, 0);
