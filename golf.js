@@ -73,7 +73,7 @@ function Game() {
 
             //const light1 = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), this.scene);
             const light1 = new BABYLON.DirectionalLight("light", new BABYLON.Vector3(0, -5, 5), this.scene);
-            const light2 = new BABYLON.DirectionalLight("light", new BABYLON.Vector3(5, -4, 1), this.scene);
+            const light2 = new BABYLON.DirectionalLight("light", new BABYLON.Vector3(5, -4, 5), this.scene);
             light1.intensity = 0.7; // dim light
             light2.intensity = 0.7; // dim light
 
@@ -101,16 +101,17 @@ function Game() {
             skybox.material = this.materials.sky;
             skybox.infiniteDistance = true;
 
-
-
-            this.materials.green = new BABYLON.StandardMaterial("greenmat");
-            this.materials.green.diffuseColor = new BABYLON.Color3(.6, .8, .6);
-            this.materials.green.diffuseTexture = new BABYLON.Texture("/assets/green.jpg");
-            this.materials.green.diffuseTexture.uScale = 1;
-            this.materials.green.diffuseTexture.vScale = 1;
+            this.materials.green = new BABYLON.PBRMaterial('greenmat',this.scene);
+            this.materials.green.albedoTexture = new BABYLON.Texture('/assets/green.jpg',this.scene);
+            this.materials.green.albedoTexture.uScale = 1;
+            this.materials.green.albedoTexture.vScale = 1;
+            this.materials.green.metallic = 0;
+            this.materials.green.roughness = .6;
+            //this.materials.green.diffuseColor = new BABYLON.Color3(.6, .8, .6);
 
             this.materials.bumper = new BABYLON.StandardMaterial("bumpermat");
-            this.materials.bumper.diffuseColor = new BABYLON.Color3(.2, .4, .15);
+            this.materials.bumper.diffuseColor = new BABYLON.Color3(.1, .32, .05);
+            //this.materials.bumper.diffuseColor = new BABYLON.Color3(.2, .4, .15);
 
             this.materials.shadow = new BABYLON.StandardMaterial("bumpermat");
             this.materials.shadow.diffuseColor = new BABYLON.Color3(0, .1, 0);
@@ -256,6 +257,9 @@ function Game() {
                 mass: 0,
                 restitution: 0,
                 friction: 0 }, this.scene);
+            for(let i=0; i<this.shadows.length; i++) {
+                this.shadows[i].getShadowMap().renderList.push(bumper);
+            }
             return bumper;
         },
         addGround: function(x, y, z, options) {
@@ -369,7 +373,9 @@ function Game() {
             corner.rotation = new BABYLON.Vector3(0, rotation, 0);
             corner.material = this.materials.bumper;
 
-
+            for(let i=0; i<this.shadows.length; i++) {
+                this.shadows[i].getShadowMap().renderList.push(corner);
+            }
             new BABYLON.PhysicsAggregate(corner, BABYLON.PhysicsShapeType.MESH, {
                 mass: 0,
                 restitution: 0,
@@ -446,6 +452,9 @@ function Game() {
                 mass: 0,
                 restitution: 0,
                 friction: 0 }, this.scene);
+            for(let i=0; i<this.shadows.length; i++) {
+                this.shadows[i].getShadowMap().renderList.push(mesh);
+            }
             return mesh;
 
         },
@@ -527,7 +536,9 @@ function Game() {
                 restitution: 0,
                 friction: 0 }, this.scene);
 
-
+            for(let i=0; i<this.shadows.length; i++) {
+                this.shadows[i].getShadowMap().renderList.push(tunnel);
+            }
             cylinder.dispose();
             box.dispose(); // delete the original mesh
 
